@@ -10,21 +10,13 @@ class WinMD::Param < WinMD::Base
   property attrs = [] of String | WinMD::Type
 
   def after_initialize
-    @name = WinMD.fix_param_name(@name)
     super
-    if @type.is_a?(WinMD::Type::PointerTo)
-      if @type.as(WinMD::Type::PointerTo).child.is_a?(WinMD::Type::ApiRef)
-        if @type.as(WinMD::Type::PointerTo).child.as(WinMD::Type::ApiRef).name == "IXMLElement"
-          puts "We have IXMLElement"
-        end
-      end
-    end
+    @name = WinMD.fix_param_name(@name)
   end
 
   def file=(file : WinMD::File)
     super(file)
     @type.file = file
-    
     if @type.is_a?(WinMD::Type::ApiRef)
       inc = WinMD::Include.new(@type.as(WinMD::Type::ApiRef).api, file)
       file.add_include(inc)
