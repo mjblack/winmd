@@ -38,7 +38,6 @@ class WinMD::Method < WinMD::Base
     @return_type.file = file
     @params.each do |x|
       x.file = file
-      puts x.type.class.to_s
       if x.type.is_a?(WinMD::Type::ApiRef)
         inc = WinMD::Include.new(x.type.as(WinMD::Type::ApiRef).api, file)
         file.add_include(inc)
