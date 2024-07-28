@@ -112,10 +112,6 @@ class WinMD::File < WinMD::Base
   # Add includes but only if its unique
   def add_include(inc : WinMD::Include)
     unless @includes.includes?(inc) || inc.same_file
-      if inc.filename == "."
-        puts "Include filename was '.'"
-        return
-      end
       @includes << inc
       @includes.compact!
     end
