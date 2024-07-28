@@ -17,13 +17,6 @@ module WinMD
       end
     end
 
-    def to_s(io)
-      io << "Param name "
-      io << @name
-      io << ", type is "
-      io << @type
-    end
-
     def render
       ECR.render "./src/winmd/ecr/fun_param.ecr"
     end
