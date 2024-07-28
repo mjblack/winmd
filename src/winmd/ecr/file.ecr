@@ -26,14 +26,14 @@ module <%= @namespace %>
 <% @types.map { |x| x if x.is_a?(WinMD::Type::Com) }.compact.each do |t| -%>
 <%= t.render %>
 <% end -%>
-
+<% if @functions.any? -%>
 <% @links.each do |l| -%>
   @[Link("<%= l %>")]
 <% end -%>
   lib C
 <% @functions.each do |f| -%>
 <%= f.render %>
-
 <% end -%>
   end
+<% end -%>
 end
