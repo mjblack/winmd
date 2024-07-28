@@ -1,0 +1,10 @@
+<% if architectures? -%>
+<%= pad(4) %>{% if <%= render_arches.join(" || ") %> %}
+<% end -%>
+<% if @libc_fun -%>
+<%= pad(4) %># Commented out due to being part of LibC
+<% end -%>
+<%= pad(4) %><% if @libc_fun %>#<% end %>fun <%= @name %><% if @params.any? %>(<%= @params.map { |p| p.render }.join(", ") %>)<% end %> : <%= @return_type.render %>
+<% if architectures? -%>
+<%= pad %>{% end %}
+<% end -%>

@@ -1,0 +1,8 @@
+<% if @flags -%>
+<%= pad %>@[Flags]
+<% end -%>
+<%= pad %>enum <%= @name %><% unless integer_base == "Int32" -%> : <%= integer_base %><% end %>
+<% @members.each do |v| -%>
+<%= pad(4) %><%= v.render %>
+<% end -%>
+<%= pad %>end

@@ -1,0 +1,34 @@
+<% if architectures? -%>
+<%= pad %>{% if <%= render_arches.join(" || ") %> %}
+<% end -%>
+<%= pad %>@[Extern]
+<%= pad %>record <%= @name %>Vtbl,
+<% resolve_methods.each do |x| -%>
+<% if x.architectures? -%>
+<%= pad(4) %>{% if <%= x.render_arches %> %}
+<% end -%>
+<%= pad(4) %><%= x.render_proc(@name) %><% unless x == @resolved_methods.last %>,<% end %>
+<% if x.architectures? -%>
+<% pad(4) %>{% end %}
+<% end -%>
+<% end -%>
+
+
+<%= pad %>@[Extern]
+<% if @guid -%>
+<%= pad %>#@[Com("<%= @guid %>")]
+<% end -%>
+<%= pad %>record <%= @name %>, lpVtbl : <%= @name %>Vtbl do
+<% resolve_methods.each do |x| -%>
+<% if x.architectures? -%>
+<%= pad(4) %>{% if <%= x.render_arches %> %}
+<% end -%>
+<%= x.render(@name) %>
+<% if x.architectures? -%>
+<% pad(4) %>{% end %}
+<% end -%>
+<% end %>
+<%= pad %>end
+<% if architectures? -%>
+<%= pad %>\{% end %}
+<% end -%>

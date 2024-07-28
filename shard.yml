@@ -1,0 +1,18 @@
+name: winmd
+version: 0.1.0
+
+authors:
+  - Matthew J. Black <mjblack@gmail.com>
+
+
+targets:
+  winmd:
+    main: src/cli.cr
+
+crystal: '>= 1.13.0'
+
+license: MIT
+
+dependencies:
+  admiral:
+    github: jwaldrip/admiral.cr

@@ -1,0 +1,1 @@
+<%= @name %> : Proc(<%= interface_name %>*<% if @params.any? %>, <%= @params.map { |x| x.render_proc }.join(", ") %><% end %>, <%= @return_type.render %>)

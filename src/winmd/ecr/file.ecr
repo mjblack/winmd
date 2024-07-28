@@ -1,0 +1,39 @@
+<% get_includes.each do |x| -%>
+<% unless x.same_file -%>
+<%= x.render %>
+<% end -%>
+<% end %>
+module <%= @namespace %>
+<% @types.map { |x| x if x.is_a?(WinMD::Type::NativeTypedef) }.compact.each do |t| -%>
+<%= t.render %>
+<% end -%>
+<% @types.map { |x| x if x.is_a?(WinMD::Type::FunctionPointer) }.compact.each do |t| -%>
+<%= t.render %>
+<% end -%>
+<% @constants.each do |c| -%>
+<%= c.render %>
+<% end %>
+<% @types.map { |x| x if x.is_a?(WinMD::Type::ComClassID) }.compact.each do |t| -%>
+<%= t.render %>
+<% end -%>
+<% @types.map { |x| x if x.is_a?(WinMD::Type::Enum) }.compact.each do |t| -%>
+<%= t.render %>
+<% end -%>
+
+<% @types.map { |x| x if x.is_a?(WinMD::Type::Struct) || x.is_a?(WinMD::Type::Union) }.compact.each do |t| -%>
+<%= t.render %>
+<% end -%>
+<% @types.map { |x| x if x.is_a?(WinMD::Type::Com) }.compact.each do |t| -%>
+<%= t.render %>
+<% end -%>
+
+<% @links.each do |l| -%>
+  @[Link("<%= l %>")]
+<% end -%>
+  lib C
+<% @functions.each do |f| -%>
+<%= f.render %>
+
+<% end -%>
+  end
+end

@@ -1,0 +1,3 @@
+<%= pad(4) %>def <%= @name %>(this : <%= interface_name %><% if @params.any? %>, <%= @params.map { |p| p.render }.join(", ") %><% end %>) : <%= @return_type.render %>
+<%= pad(6) %>@lpVtbl.try &.value.<%= @name %>.call(this<% if @params.any? %>, <%= @params.map { |p| p.name }.join(", ") %><% end %>)
+<%= pad(4) %>end

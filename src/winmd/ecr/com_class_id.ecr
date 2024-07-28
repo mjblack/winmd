@@ -1,0 +1,7 @@
+<% if architectures? -%>
+<%= pad %>{% if <%= render_arches.join(" || ") %> %}
+<% end -%>
+<%= pad %><%= name %> = LibC::GUID.new(<%= hex_guid %>)
+<% if architectures? -%>
+<%= pad %>{% end %}
+<% end -%>
