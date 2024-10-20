@@ -12,6 +12,10 @@ abstract class WinMD::Base
   @[JSON::Field(ignore: true)]
   property nested_type : Bool = false
 
+  @[JSON::Field(ignore: true)]
+  property? pointer : Bool = false
+
+
   def after_initialize
   end
 

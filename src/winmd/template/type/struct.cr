@@ -68,9 +68,8 @@ class WinMD::Type::Struct < WinMD::Type
 
   def file=(file : WinMD::File)
     super(file)
-    consts = file.constants.map(&.name)
-    if consts.includes?(@name)
-      @name += "_"
+    if const = file.constants.find { |x| x.name == @name }
+      const.name += "_"
     end
     @fields.each do |f|
       f.file = file

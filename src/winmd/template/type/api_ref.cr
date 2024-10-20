@@ -18,12 +18,6 @@ class WinMD::Type::ApiRef < WinMD::Type
   @[JSON::Field(ignore: true)]
   property namespace_path : String = ""
 
-  def pointer?
-    case @target_kind.downcase
-    when "functionpointer", "com"
-    end
-  end
-
   def after_initialize
     super
     @name = WinMD.fix_type_name(@name)
@@ -43,6 +37,9 @@ class WinMD::Type::ApiRef < WinMD::Type
   def resolved_name
     if @nested_type
       return @name
+    end
+    if target_kind == "Com"
+      return "Void*"
     end
     if @file.nil?
       file = WinMD.find_file_by_ns(@namespace)

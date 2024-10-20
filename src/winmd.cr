@@ -4,12 +4,14 @@ require "yaml"
 require "ecr"
 require "big"
 require "uuid"
+require "file_utils"
 require "compiler/crystal/syntax/ast"
 require "compiler/crystal/syntax/virtual_file"
 require "compiler/crystal/syntax/lexer"
 require "compiler/crystal/syntax/token"
 
 require "admiral"
+require "git-repository"
 
 require "./winmd/fun_param"
 require "./winmd/fun"
@@ -41,7 +43,7 @@ module WinMD
     "SByte"   => "Int8",
     "Byte"    => "UInt8",
     "Guid"    => "LibC::GUID",
-    "UIntPtr" => "UInt64",
+    "UIntPtr" => "LibC::UIntPtrT",
     "IntPtr"  => "LibC::IntPtrT",
     "Boolean" => "Bool"
   }

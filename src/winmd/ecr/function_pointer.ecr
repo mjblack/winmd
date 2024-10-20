@@ -1,7 +1,7 @@
 <% if architectures? -%>
 <%= pad %>{% if <%= render_arches.join(" || ") %> %}
 <% end -%>
-<%= pad %>alias <%= @name %> = Proc(<% if @params.any? %><%= @params.map { |x| x.type.render }.join(", ") %>, <% end %><%= @return_type.render %>)
+<%= pad %>alias <%= @name %> = Proc(<% if @params.any? %><%= @params.map { |x| x.type.render }.join(", ") %>, <% end %><%= @return_type.render %>)*
 <% if architectures? -%>
 <%= pad %>{% end %}
 <% end -%>

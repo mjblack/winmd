@@ -1,7 +1,7 @@
 <% if architectures? -%>
 <%= pad %>\{% if <%= render_arches.join(" || ") %> %}
 <% end -%>
-<%= pad %>alias <%= @name %> = <%= @def_.render -%>
+<%= pad %>alias <%= @name %> = <%= @def_.render -%>*
 <% if architectures? -%>
 <%= pad %>\{% end %}
 <% end -%>

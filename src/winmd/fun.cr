@@ -15,7 +15,7 @@ class WinMD::Fun
   end
 
   def ==(other : String)
-    @name == other.name
+    @name == other
   end
 
   def file=(file)

@@ -1,1 +1,1 @@
-<%= @name %> : <%= @type.render %>
+<%= @name %> : <%= @type.render %><% if @type.pointer? %>*<% end %>

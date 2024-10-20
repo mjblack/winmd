@@ -30,10 +30,27 @@ class WinMD::Type::Com < WinMD::Type
 
   def after_initialize
     super
-    if /^_/.match(@name)
-      @name += "_"
-    end
+    # if /^_/.match(@name)
+    #   @name += "_"
+    # end
     @name = WinMD.fix_type_name(@name)
+  end
+
+  def get_guid
+    if g = @guid
+      begin
+        new_guid = WinMD::Guid.new(g)
+        return new_guid
+      rescue
+      end
+    else
+      begin
+        new_guid = WinMD::Guid.new("00000000-0000-0000-0000-000000000000")
+        return new_guid
+      rescue
+      end
+    end
+    nil
   end
 
   def resolve_methods

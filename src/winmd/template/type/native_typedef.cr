@@ -28,11 +28,6 @@ class WinMD::Type::NativeTypedef < WinMD::Type
 
   def fqdn
     fqdn_name = @name
-    if @file.nil?
-      if @file = WinMD.find_file_by_ns(@namespace)
-        debug("ApiRef #{@name} had nil tfile but tfile is now set to #{@file.try &.namespace}")
-      end
-    end
     unless @file.try &.namespace == @namespace
       fqdn_name = @namespace + "::" + @name
     end

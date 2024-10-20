@@ -18,7 +18,10 @@
 <% if @guid -%>
 <%= pad %>#@[Com("<%= @guid %>")]
 <% end -%>
-<%= pad %>record <%= @name %>, lpVtbl : <%= @name %>Vtbl do
+<%= pad %>record <%= @name %>, lpVtbl : <%= @name %>Vtbl* do
+<% if my_guid = get_guid -%>
+<%= pad(4) %>GUID = LibC::GUID.new(<%= my_guid.to_hex_params %>)
+<% end -%>
 <% resolve_methods.each do |x| -%>
 <% if x.architectures? -%>
 <%= pad(4) %>{% if <%= x.render_arches %> %}
