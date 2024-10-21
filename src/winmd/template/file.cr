@@ -64,7 +64,7 @@ class WinMD::File < WinMD::Base
   end
 
   def structs_and_unions
-    @types.select(WinMD::Type::Struct).map { |x| x } 
+    @types.select(WinMD::Type::Struct).map { |x| x }
   end
 
   def find_com_interface(name : String)
@@ -126,7 +126,7 @@ class WinMD::File < WinMD::Base
   end
 
   def get_kinds
-    kinds_list = ["TFunction"] of String
+    kinds_list = [] of String
     @types.each do |type|
       kind = type.class.to_s
       unless kinds_list.includes?(kind)
