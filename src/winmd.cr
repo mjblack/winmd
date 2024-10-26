@@ -170,6 +170,11 @@ module WinMD
         f.write_string(main_file_slice)
         f.close
       end
+      comptr_file_slice = ECR.render("./src/winmd/ecr/com_ptr.ecr").to_slice
+      ::File.open(dir.join("src/" + WinMD.top_level_namespace.downcase + "/com_ptr.cr"), "w") do |f|
+        f.write_string(comptr_file_slice)
+        f.close
+      end
     rescue e : Exception
       puts "Failed to create main file"
       puts e.message
