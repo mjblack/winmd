@@ -30,29 +30,18 @@ require "./winmd/guid"
 module WinMD
   VERSION = {{ `shards version #{__DIR__}`.chomp.stringify }}
 
-  LIBC_FUNS = {{LibC.methods.map  do |x|
+  LIBC_FUNS = {{LibC.methods.map do |x|
                   args = x.args.stringify.gsub(/[\[|\]]/, "").split(",")
                   {name: x.name.stringify, args: args, return_type: x.return_type.stringify}
-                end
-              }}
-
-  DATA_TYPES_ALIASES = {
-    "Char"    => "UInt16",
-    "Single"  => "Float32",
-    "Double"  => "Float64",
-    "SByte"   => "Int8",
-    "Byte"    => "UInt8",
-    "Guid"    => "LibC::GUID",
-    "UIntPtr" => "LibC::UIntPtrT",
-    "IntPtr"  => "LibC::IntPtrT",
-    "Boolean" => "Bool"
-  }
+                end}}
 
   INT_TYPES = {{Int.subclasses.map { |x| x.stringify }}}
 
   class_property files = [] of File
-  class_property libc_funs = [] of WinMD::Fun
+  class_property libc_funs = [] of String
   class_property crystal_keywords = [] of String
+  @@dll_exceptions = [] of String
+  @@data_type_aliases = {} of String => String
 
   # Runtime configuration parameters
   class_property log_file : Bool = false
@@ -61,17 +50,54 @@ module WinMD
   class_property fun_handle : String = "comment"
   class_property output_dir : Path = Path.new("win32cr")
   class_property top_level_namespace : String = "Win32cr"
+  class_property fun_exceptions_file : Path = Path.new("fun_exceptions.json")
+  class_property dll_exceptions_file : Path = Path.new("dll_exceptions.json")
+  class_property data_type_aliases_file : Path = Path.new("data_type_aliases.json")
 
   def self.init
+    if ::File.exists?(@@dll_exceptions_file)
+      begin
+        json = JSON.parse(::File.read(@@dll_exceptions_file))
+        json.as_a.each { |x| @@dll_exceptions << x.as_s }
+      rescue e : Exception
+        Log.fatal { "Failed to load DLL exceptions" }
+        Log.fatal { e.message }
+        Log.fatal { e.backtrace }
+        exit 1
+      end
+    end
+    if ::File.exists?(@@data_type_aliases_file)
+      begin
+        json = JSON.parse(::File.read(@@data_type_aliases_file))
+        json.as_h.each { |key, value| @@data_type_aliases[key] = value.as_s }
+      rescue e : Exception
+        Log.fatal { "Failed to load data type aliases" }
+        Log.fatal { e.message }
+        Log.fatal { e.backtrace }
+        exit 1
+      end
+    end
     WinMD::Fun.collect_funs
     @@crystal_keywords = Crystal::Keyword.names.map { |x| x.downcase }
     @@crystal_keywords << "initialize"
     @@crystal_keywords << "finalize"
   end
 
+  def self.dll_exception?(name : String)
+    @@dll_exceptions.includes?(name)
+  end
+
+  def self.get_alias(name : String)
+    @@data_type_aliases[name]
+  end
+
+  def self.has_alias?(name : String)
+    @@data_type_aliases.has_key?(name)
+  end
+
   def self.rename_type(name : String)
-    if DATA_TYPES_ALIASES.has_key?(name)
-      return DATA_TYPES_ALIASES[name]
+    if @@data_type_aliases.has_key?(name)
+      return @@data_type_aliases[name]
     end
     name
   end
@@ -181,5 +207,4 @@ module WinMD
       puts e.backtrace
     end
   end
-
 end

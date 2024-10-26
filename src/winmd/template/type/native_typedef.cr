@@ -22,8 +22,14 @@ class WinMD::Type::NativeTypedef < WinMD::Type
   @[JSON::Field(key: "InvalidHandleValue")]
   property invalid_handle_value : Int32 | Nil
 
+  @[JSON::Field(ignore: true)]
+  property override : String?
+
   def after_initialize
     @name = WinMD.fix_type_name(@name)
+    if WinMD.has_alias?(@name)
+      @override = WinMD.get_alias(@name)
+    end
   end
 
   def fqdn
@@ -35,6 +41,7 @@ class WinMD::Type::NativeTypedef < WinMD::Type
   end
 
   def render
+    data_type = @override ? @override.not_nil! : @def_.render
     ECR.render "./src/winmd/ecr/native_typedef.ecr"
   end
 

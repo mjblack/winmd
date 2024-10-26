@@ -34,7 +34,7 @@ class WinMD::Function < WinMD::Base
 
   def after_initialize
     super
-    if WinMD::Fun.find_fun(@name)
+    if WinMD::Fun.exception?(@name)
       @libc_fun = true
     end
     @dll_import = @dll_import.downcase
