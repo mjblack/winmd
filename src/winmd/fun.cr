@@ -1,13 +1,13 @@
 class WinMD::Fun
-
   class_getter funs = [] of WinMD::Fun
+  # Exceptions will be treated as LibC funs
+  class_getter exceptions = [] of String
   getter name : String
   getter params = [] of FunParam
   getter return_type : String?
   getter original_def : String
 
   def initialize(@name : String, @params : Array(FunParam), @original_def : String, @return_type : String | Nil = nil)
-
   end
 
   def ==(other : Fun)
@@ -39,17 +39,19 @@ class WinMD::Fun
   end
 
   def self.collect_funs
+    if ::File.exists?(WinMD.fun_exceptions_file)
+      json = JSON.parse(::File.read(WinMD.fun_exceptions_file))
+      json.as_a.each { |x| @@exceptions << x.as_s }
+    end
     funs = {{LibC.methods.map(&.stringify)}}
-    funs.reject! { |x| x.size == 0 } 
+    funs.reject! { |x| x.size == 0 }
 
     funs.each do |f|
       begin
         if _fun = parse_fun(f)
-          if @@funs.includes?(_fun)
-          else
-            @@funs << _fun
+          unless @@exceptions.includes?(_fun.name)
+            @@exceptions << _fun.name
           end
-
         end
       rescue e : Exception
         puts "Failed to parse fun for #{f}"
@@ -68,5 +70,9 @@ class WinMD::Fun
         next
       end
     end
+  end
+
+  def self.exception?(name : String)
+    @@exceptions.includes?(name)
   end
 end

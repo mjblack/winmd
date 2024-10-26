@@ -73,6 +73,9 @@ class WinMD::File < WinMD::Base
 
   def render
     @functions.each do |f|
+      if WinMD.dll_exception?(f.dll_import)
+        next
+      end
       unless @links.includes?(f.dll_import)
         @links << f.dll_import
       end
