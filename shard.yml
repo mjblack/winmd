@@ -1,5 +1,5 @@
 name: winmd
-version: 1.0.0-rc1
+version: 1.0.0-rc2
 
 authors:
   - Matthew J. Black <mjblack@gmail.com>
@@ -8,7 +8,7 @@ targets:
   winmd:
     main: src/cli.cr
 
-crystal: '>= 1.14.0'
+crystal: '>= 1.15.0'
 
 license: MIT
 
@@ -22,4 +22,5 @@ executables:
 - winmd
 
 scripts:
-  postinstall: shards build
+  postinstall: .\scripts\build.ps1
+  
