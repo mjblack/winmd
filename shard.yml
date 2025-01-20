@@ -17,6 +17,3 @@ dependencies:
     github: jwaldrip/admiral.cr
   git-repository:
     github: place-labs/git-repository
-
-executables:
-- winmd
