@@ -22,4 +22,4 @@ executables:
 - winmd
 
 scripts:
-  postinstall: "& .\\scripts\\build.ps1"
+  postinstall: echo $pwd && & .\\scripts\\build.ps1
