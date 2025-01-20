@@ -22,5 +22,4 @@ executables:
 - winmd
 
 scripts:
-  postinstall: .\scripts\build.ps1
-  
+  postinstall: "& .\scripts\build.ps1"
