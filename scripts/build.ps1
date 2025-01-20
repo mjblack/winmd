@@ -29,9 +29,5 @@ if ((Test-Path -Path ".\bin")) {
 $_build_params = @("build","-o","./bin/winmd.exe", "--static", "--release", "--progress")
 $_build_params += $build_params
 $_build_params += @("src/cli.cr")
-Write-Output $_build_params
 
-#& "$env:SHARDS_EXE" install
-# Start-Process -FilePath $env:CRYSTAL_EXE -ArgumentList $_build_params -NoNewWindow -Wait -PassThru
-# Start-Process -FilePath $env:CRYSTAL_EXE -ArgumentList $_build_params -Wait -PassThru
 & "$env:CRYSTAL_EXE" $_build_params
