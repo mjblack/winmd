@@ -106,6 +106,7 @@ module WinMD
     name = name.sub(/^tag/, "")
     while /^_/.match(name)
       name = name.sub(/^_/, "")
+      name += "_"
     end
     unless name[0].uppercase?
       name = name.capitalize
