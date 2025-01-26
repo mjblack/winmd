@@ -2,9 +2,9 @@
 <%= pad %>{% if <%= render_arches.join(" || ") %> %}
 <% end -%>
 <%= pad %>@[Extern<% if is_union? %>(union: true)<% end %>]
-<%= pad %>record <%= @name %><% if @fields.any? %>,
+<%= pad %>struct <%= @name %>
 <%- @fields.each do |f| -%>
-<%= f.pad %><%= f.render %><% if @fields.last != f %>,<% else %><% if @nested_types.any? %> do<% end %><% end %>
+<%= f.pad(4) %>property <%= f.render %>
 <%- end -%>
 <% if @nested_types.any? -%>
 <% @nested_types.each do |t| -%>
@@ -12,9 +12,10 @@
 <%= t.pad %># Nested Type <%= t.as(WinMD::Type::Struct).name %>
 <%= t.render %>
 <% end -%>
+<% end -%>
+<%= pad(4) %>def initialize(<%= @fields.map { |f| "@" + f.render }.join(", ") %>)
+<%= pad(4) %>end
 <%= pad %>end
-<% end -%>
-<% end -%>
 <% if architectures? -%>
 <%= pad %>{% end %}
 <% end -%>
