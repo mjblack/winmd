@@ -9,6 +9,11 @@ class WinMD::Type::Enum::EnumMember < WinMD::Base
   @[JSON::Field(ignore: true)]
   property parent : WinMD::Type::Enum?
 
+  @[JSON::Field(ignore: true)]
+  property override_name : String = ""
+
+  @[JSON::Field(ignore: true)]
+  property override_value : String = ""
 
   def after_initialize
     @name = WinMD.fix_type_name(@name)

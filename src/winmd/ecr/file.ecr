@@ -4,6 +4,7 @@
 <% end -%>
 <% end %>
 module <%= @namespace %>
+  extend self
 <% @types.map { |x| x if x.is_a?(WinMD::Type::NativeTypedef) }.compact.each do |t| -%>
 <%= t.render %>
 <% end -%>
@@ -27,6 +28,9 @@ module <%= @namespace %>
 <%= t.render %>
 <% end -%>
 <% if @functions.any? -%>
+<% @functions.each do |f| -%>
+<%= f.wrapper_render %>
+<% end -%>
 <% @links.each do |l| -%>
   @[Link("<%= l %>")]
 <% end -%>

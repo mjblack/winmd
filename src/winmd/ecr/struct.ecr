@@ -2,7 +2,7 @@
 <%= pad %>{% if <%= render_arches.join(" || ") %> %}
 <% end -%>
 <%= pad %>@[Extern<% if is_union? %>(union: true)<% end %>]
-<%= pad %>struct <%= @name %>
+<%= pad %>struct <% if @override_name.empty? %><%= @name %><% else %><%= @override_name %><% end %>
 <%- @fields.each do |f| -%>
 <%= f.pad(4) %>property <%= f.render %>
 <%- end -%>

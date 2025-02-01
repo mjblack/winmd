@@ -9,6 +9,12 @@ class WinMD::Param < WinMD::Base
   @[JSON::Field(key: "Attrs")]
   property attrs = [] of String | WinMD::Type
 
+  @[JSON::Field(ignore: true)]
+  property override_type : String = ""
+
+  @[JSON::Field(ignore: true)]
+  property override_name : String = ""
+
   def after_initialize
     super
     @name = WinMD.fix_param_name(@name)

@@ -4,7 +4,8 @@
 <% if @libc_fun -%>
 <%= pad(4) %># Commented out due to being part of LibC
 <% end -%>
-<%= pad(4) %><% if @libc_fun %>#<% end %>fun <%= @name %><% if @params.any? %>(<%= @params.map { |p| p.render }.join(", ") %>)<% end %> : <%= @return_type.render %>
+<%= pad(4) %># :nodoc:
+<%= pad(4) %><% if @libc_fun %>#<% end %>fun <% if WinMD.fun_aliases? %><% if @fun_alias.empty? %><%= @name.underscore %><% else %><%= @fun_alias %><% end %> = <% end %><% if @override_name.empty? %><%= @name %><% else %><%= @override_name %><% end %><% if @params.any? %>(<%= @params.map { |p| p.render }.join(", ") %>)<% end %> : <% if @override_return_type.empty? %><%= @return_type.render %><% else %><%= @override_return_type %><% end %>
 <% if architectures? -%>
-<%= pad %>{% end %}
+<%= pad(4) %>{% end %}
 <% end -%>

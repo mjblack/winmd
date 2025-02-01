@@ -55,6 +55,10 @@ class WinMD::File < WinMD::Base
     qualified_path == other.qualified_path
   end
 
+  def enums
+    @types.select(WinMD::Type::Enum)
+  end
+
   def native_typedefs
     @types.select(WinMD::Type::NativeTypedef)
   end
@@ -163,7 +167,12 @@ class WinMD::File < WinMD::Base
     end
   end
 
-
+  def process_overrides
+    Log.debug { "{File}Applying overrides for #{@namespace} - #{@file_name}" }
+    @functions.each(&.apply_overrides)
+    structs_and_unions.each(&.apply_overrides)
+    enums.each(&.apply_overrides)
+  end
 
   def self.from_json(json_data, filename)
     file = from_json(json_data)

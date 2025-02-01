@@ -86,7 +86,9 @@ module WinMD
           WinMD.process_json_files(json_path)
           Log.debug { "Phase 2 - Resolving COM Interfaces" }
           WinMD.resolve_com_interfaces
-          Log.debug { "Phase 3 - Writing Files" }
+          Log.debug { "Phase 3 - Applying Overrides" }
+          WinMD.apply_overrides
+          Log.debug { "Phase 4 - Writing Files" }
           WinMD.write_files(dst)
         end
         Log.debug { "Total time taken #{elapsed_time}" }

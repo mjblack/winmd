@@ -21,6 +21,9 @@ class WinMD::Type::Enum < WinMD::Type
   @[JSON::Field(key: "IntegerBase")]
   @integer_base : String | Nil
 
+  @[JSON::Field(ignore: true)]
+  property override_name : String = ""
+
   def after_initialize
     @name = WinMD.fix_type_name(@name)
   end
@@ -50,5 +53,28 @@ class WinMD::Type::Enum < WinMD::Type
     super(file)
     @members.each { |enum_member| enum_member.file = file }
     @members.each { |enum_member| enum_member.set_parent(self) }
+  end
+
+  def apply_overrides
+    overrides = WinMD::FunOverride.find_overrides(@name, @file.not_nil!.namespace, WinMD::FunOverride::Type::Enum)
+    apply_overrides(overrides)
+  end
+
+  def apply_overrides(overrides : Array(WinMD::FunOverride))
+    overrides.each do |override|
+      case override.rule.type
+      when WinMD::FunOverride::Rule::Type::EnumName
+        Log.debug { "Applying name override for #{@name} -> #{override.rule.value}" }
+        if override.rule.key == @name
+          @override_name = override.rule.value
+        end
+      when WinMD::FunOverride::Rule::Type::EnumMemberName
+        Log.debug { "Applying enum member name override for #{@name} -> #{override.rule.value}" }
+        @members[override.rule.index].override_name = override.rule.value
+      when WinMD::FunOverride::Rule::Type::EnumMemberValue
+        Log.debug { "Applying enum member value override for #{@name} -> #{override.rule.value}" }
+        @members[override.rule.index].override_value = override.rule.value
+      end
+    end
   end
 end
