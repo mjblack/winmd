@@ -37,6 +37,9 @@ class WinMD::Type::Struct < WinMD::Type
   @[JSON::Field(key: "MDParent", ignore_deserialize: true)]
   property parent : Struct?
 
+  @[JSON::Field(ignore: true)]
+  property override_name : String = ""
+
   def render
     fix_pad_size
     ECR.render "./src/winmd/ecr/struct.ecr"
@@ -113,5 +116,27 @@ class WinMD::Type::Struct < WinMD::Type
 
   def after_initialize
     @name = WinMD.fix_type_name(@name)
+  end
+
+  def apply_overrides
+    overrides = WinMD::FunOverride.find_overrides(@name, @file.not_nil!.namespace, WinMD::FunOverride::Type::Struct)
+    apply_overrides(overrides)
+    @nested_types.each(&.apply_overrides)
+  end
+
+  def apply_overrides(overrides : Array(WinMD::FunOverride))
+    overrides.each do |override|
+      case override.rule.type
+      when WinMD::FunOverride::Rule::Type::StructName
+        Log.debug { "Applying name override for #{@name} -> #{override.rule.value}" }
+        @override_name = override.rule.value
+      when WinMD::FunOverride::Rule::Type::StructFieldName
+        Log.debug { "Applying struct field name override for #{@name} -> #{override.rule.value}" }
+        @fields[override.rule.index].name = override.rule.value
+      when WinMD::FunOverride::Rule::Type::StructFieldType
+        Log.debug { "Applying struct field type override for #{@name} -> #{override.rule.value}" }
+        @fields[override.rule.index].override_type = override.rule.value
+      end
+    end
   end
 end

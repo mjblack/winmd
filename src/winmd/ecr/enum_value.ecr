@@ -1,1 +1,1 @@
-<%= @name %> = <%= @value %>_<%= integer_base %>
+<% if @override_name.empty? %><%= @name %><% else %><%= @override_name %><% end %> = <% if @override_value.empty? %><%= @value %><% else %><%= @override_value %><% end %>_<%= integer_base %>

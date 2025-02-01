@@ -1,0 +1,9 @@
+<% if architectures? -%>
+{% if <%= render_arches.join(" || ") %> %}
+<% end -%>
+<%= pad %><% if @libc_fun %>#<% end %>def <% if @override_name.empty? %><%= @name.camelcase(lower: true) %><% else %><%= @override_name.camelcase(lower: true) %><% end %><% if @params.any? %>(<%= @params.map { |p| p.render }.join(", ") %>)<% end %> : <% if @override_return_type.empty? %><%= @return_type.render %><% else %><%= @override_return_type %><% end %>
+<%= pad(4) %><% if @libc_fun %>#<% end %>C.<% if @override_name.empty? %><%= @name.camelcase(lower: true) %><% else %><%= @override_name.camelcase(lower: true) %><% end %><% if @params.any? %>(<%= @params.map { |p| p.name }.join(", ") %>)<% end %>
+<%= pad %><% if @libc_fun %>#<% end %>end
+<% if architectures? -%>
+{% end %}
+<% end -%>

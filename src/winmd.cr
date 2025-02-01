@@ -13,6 +13,7 @@ require "compiler/crystal/syntax/token"
 require "admiral"
 require "git-repository"
 
+require "./winmd/fun_override"
 require "./winmd/fun_param"
 require "./winmd/fun"
 require "./winmd/architecture"
@@ -53,6 +54,8 @@ module WinMD
   class_property fun_exceptions_file : Path = Path.new("fun_exceptions.json")
   class_property dll_exceptions_file : Path = Path.new("dll_exceptions.json")
   class_property data_type_aliases_file : Path = Path.new("data_type_aliases.json")
+  class_property overrides_file : Path = Path.new("overrides.json")
+  class_property? fun_aliases : Bool = false
 
   def self.init
     if ::File.exists?(@@dll_exceptions_file)
@@ -78,6 +81,7 @@ module WinMD
       end
     end
     WinMD::Fun.collect_funs
+    WinMD::FunOverride.load_overrides(@@overrides_file)
     @@crystal_keywords = Crystal::Keyword.names.map { |x| x.downcase }
     @@crystal_keywords << "initialize"
     @@crystal_keywords << "finalize"
@@ -206,6 +210,15 @@ module WinMD
       puts "Failed to create main file"
       puts e.message
       puts e.backtrace
+    end
+  end
+
+  def self.apply_overrides
+    @@files.each do |f|
+      if (size = WinMD::FunOverride.find_ns_overrides(f.namespace).size) > 0
+        Log.debug { "{WinMD}Found #{size} overrides for #{f.namespace} - #{f.file_name}"}
+        f.process_overrides
+      end
     end
   end
 end

@@ -19,6 +19,12 @@ abstract class WinMD::Type < WinMD::Base
     true
   end
 
+  def apply_overrides
+  end
+
+  def apply_overrides(overrides = [] of WinMD::FunOverride)
+  end
+
   def file=(file : WinMD::File)
     super(file)
   end

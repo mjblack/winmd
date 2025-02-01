@@ -1,1 +1,1 @@
-<%= @name %> : <%= @type.render %><% if @type.pointer? %>*<% end %>
+<%= @override_name.empty? ? @name : @override_name %> : <% if @override_type.empty? %><%= @type.render %><% if @type.pointer? %>*<% end %><% else %><%= @override_type %><% end %>
