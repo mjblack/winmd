@@ -206,6 +206,13 @@ module WinMD
         f.write_string(comptr_file_slice)
         f.close
       end
+      unless ::File.exists?(dir.join("src/macros.cr"))
+        macro_file_slice = ECR.render("./src/winmd/ecr/macros.ecr").to_slice
+        ::File.open(dir.join("src/macros.cr"), "w") do |f|
+          f.write_string(macro_file_slice)
+          f.close
+        end
+      end
     rescue e : Exception
       puts "Failed to create main file"
       puts e.message
