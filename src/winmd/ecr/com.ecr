@@ -2,7 +2,7 @@
 <%= pad %>{% if <%= render_arches.join(" || ") %> %}
 <% end -%>
 <%= pad %>@[Extern]
-<%= pad %>record <%= @name %>Vtbl,
+<%= pad %>record <%= @name %>Vtable,
 <% resolve_methods.each do |x| -%>
 <% if x.architectures? -%>
 <%= pad(4) %>{% if <%= x.render_arches %> %}
@@ -17,7 +17,7 @@
 <%= pad %>@[Extern]
 <% if @guid -%>
 <% end -%>
-<%= pad %>record <%= @name %>, lpVtbl : <%= @name %>Vtbl* do
+<%= pad %>record <%= @name %>, lpVtbl : <%= @name %>Vtable* do
 <% if my_guid = get_guid -%>
 <%= pad(4) %>GUID = LibC::GUID.new(<%= my_guid.to_hex_params %>)
 <% end -%>
