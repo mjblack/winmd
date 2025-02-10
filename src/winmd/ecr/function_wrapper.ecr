@@ -2,7 +2,13 @@
 {% if <%= render_arches.join(" || ") %> %}
 <% end -%>
 <%= pad %><% if @libc_fun %>#<% end %>def <% if @override_name.empty? %><%= @name.camelcase(lower: true) %><% else %><%= @override_name.camelcase(lower: true) %><% end %><% if @params.any? %>(<%= @params.map { |p| p.render }.join(", ") %>)<% end %> : <% if @override_return_type.empty? %><%= @return_type.render %><% else %><%= @override_return_type %><% end %>
+<% unless @libc_fun -%>
+<%= pad(4) %>{% if !flag?(:docs) %}
+<% end -%>
 <%= pad(4) %><% if @libc_fun %>#<% end %>C.<% if @override_name.empty? %><%= @name %><% else %><%= @override_name %><% end %><% if @params.any? %>(<%= @params.map { |p| p.name }.join(", ") %>)<% end %>
+<% unless @libc_fun -%>
+<%= pad(4) %>{% end %}
+<% end -%>
 <%= pad %><% if @libc_fun %>#<% end %>end
 <% if architectures? -%>
 {% end %}

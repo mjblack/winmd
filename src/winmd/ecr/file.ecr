@@ -34,10 +34,12 @@ module <%= @namespace %>
 <% @links.each do |l| -%>
   @[Link("<%= l %>")]
 <% end -%>
+  {% if !flag?(:docs) %}
   lib C
 <% @functions.each do |f| -%>
 <%= f.render %>
 <% end -%>
   end
+  {% end %}
 <% end -%>
 end
