@@ -19,9 +19,6 @@ class WinMD::Method < WinMD::Base
   @[JSON::Field(key: "ReturnAttrs")]
   property return_attrs = [] of String
 
-  @[JSON::Field(key: "Attrs")]
-  property attrs = [] of String
-
   @[JSON::Field(key: "Params")]
   property params = [] of WinMD::Param
 

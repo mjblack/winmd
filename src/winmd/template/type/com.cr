@@ -13,9 +13,6 @@ class WinMD::Type::Com < WinMD::Type
   @[JSON::Field(key: "Guid")]
   property guid : String | Nil
 
-  @[JSON::Field(key: "Attrs")]
-  property attrs = [] of String
-
   @[JSON::Field(key: "Methods")]
   property methods = [] of WinMD::Method
 
