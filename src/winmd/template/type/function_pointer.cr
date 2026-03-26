@@ -19,9 +19,6 @@ class WinMD::Type::FunctionPointer < WinMD::Type
   @[JSON::Field(key: "ReturnAttrs")]
   property return_attrs = [] of String
 
-  @[JSON::Field(key: "Attrs")]
-  property attrs = [] of String
-
   @[JSON::Field(key: "Params")]
   property params = [] of WinMD::Param
 

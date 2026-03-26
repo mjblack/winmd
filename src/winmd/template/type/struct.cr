@@ -19,9 +19,6 @@ class WinMD::Type::Struct < WinMD::Type
   @[JSON::Field(key: "Fields")]
   property fields = [] of WinMD::Type::Struct::StructField
 
-  @[JSON::Field(key: "Attrs")]
-  property attrs = [] of String
-
   @[JSON::Field(key: "NestedTypes")]
   property nested_types = [] of WinMD::Type
 

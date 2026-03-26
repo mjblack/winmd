@@ -6,9 +6,6 @@ class WinMD::Param < WinMD::Base
   @[JSON::Field(key: "Type")]
   property type : WinMD::Type
 
-  @[JSON::Field(key: "Attrs")]
-  property attrs = [] of String | WinMD::Type
-
   @[JSON::Field(ignore: true)]
   property override_type : String = ""
 

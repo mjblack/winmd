@@ -12,9 +12,6 @@ class WinMD::Constant < WinMD::Base
   @[JSON::Field(key: "Value", converter: String::RawConverter)]
   property value : String
 
-  @[JSON::Field(key: "Attrs")]
-  property attrs = [] of String
-
   def after_initialize
     @name = WinMD.fix_type_name(@name)
     case @valuetype

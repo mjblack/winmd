@@ -15,6 +15,8 @@ abstract class WinMD::Base
   @[JSON::Field(ignore: true)]
   property? pointer : Bool = false
 
+  @[JSON::Field(key: "Attrs", ignore_deserialize: true)]
+  property attrs : JSON::Any? = nil
 
   def after_initialize
   end

@@ -6,8 +6,7 @@ class WinMD::Type::Struct::StructField < WinMD::Base
   @[JSON::Field(key: "Type")]
   property type : WinMD::Type
 
-  @[JSON::Field(key: "Attrs")]
-  property attrs = [] of String
+
 
   @[JSON::Field(ignore: true)]
   property override_name : String = ""
