@@ -42,8 +42,16 @@ class WinMD::Function < WinMD::Base
     if WinMD::Fun.exception?(@name)
       @libc_fun = true
     end
-    @dll_import = @dll_import.downcase
+    @dll_import = normalize_dll_import(@dll_import)
     @fun_alias = @name.underscore
+  end
+
+  private def normalize_dll_import(value : String) : String
+    normalized = value.downcase.strip
+    normalized = normalized.sub(/\.dll$/, "")
+    return "" if normalized.starts_with?("api-ms-")
+    return "" if normalized.starts_with?("ext-ms-")
+    normalized
   end
 
   def apply_overrides

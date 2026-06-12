@@ -1,6 +1,11 @@
 # winmd
 
-Win32 API Metadata bindings generator. This application will read the JSON files created by [Win32jsongen](https://github.com/marlersoft/win32jsongen).
+Win32 API metadata bindings generator.
+
+The generator supports:
+
+- JSON metadata input (win32json-style)
+- Native `.winmd` input via [`ecma335`](../README.md)
 
 ## Installation
 
@@ -17,6 +22,29 @@ Win32 API Metadata bindings generator. This application will read the JSON files
 ## Usage
 
 Run the command `bin\winmd.exe` from the shard itself or from your own shard.
+
+Fetch `Windows.Win32.winmd` (uses the version pinned in `winmd.version`):
+
+```bash
+pwsh ./scripts/fetch-winmd.ps1
+```
+
+Override the version or output path:
+
+```bash
+pwsh ./scripts/fetch-winmd.ps1 -Version 70.0.11-preview
+pwsh ./scripts/fetch-winmd.ps1 -OutputPath winmd/Windows.Win32.winmd
+```
+
+Examples:
+
+```bash
+# Existing JSON-based flow
+bin/winmd generate ./path/to/json ./out
+
+# Native WinMD flow (new)
+bin/winmd generate --source-format winmd ./winmd/Windows.Win32.winmd ./out
+```
 
 ## Contributing
 

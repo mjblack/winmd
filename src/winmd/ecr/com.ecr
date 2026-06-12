@@ -2,14 +2,15 @@
 <%= pad %>{% if <%= render_arches.join(" || ") %> %}
 <% end -%>
 <%= pad %>@[Extern]
-<%= pad %>record <%= @name %>Vtable,
-<% resolve_methods.each do |x| -%>
+<% methods = resolve_methods %>
+<%= pad %>record <%= @name %>Vtable<% if methods.any? %>,<% end %>
+<% methods.each do |x| -%>
 <% if x.architectures? -%>
 <%= pad(4) %>{% if <%= x.render_arches %> %}
-<% end -%>
 <%= pad(4) %><%= x.render_proc(@name) %><% unless x == @resolved_methods.last %>,<% end %>
-<% if x.architectures? -%>
-<% pad(4) %>{% end %}
+<%= pad(4) %>{% end %}
+<% else -%>
+<%= pad(4) %><%= x.render_proc(@name) %><% unless x == @resolved_methods.last %>,<% end %>
 <% end -%>
 <% end -%>
 
@@ -21,13 +22,13 @@
 <% if my_guid = get_guid -%>
 <%= pad(4) %>GUID = LibC::GUID.new(<%= my_guid.to_hex_params %>)
 <% end -%>
-<% resolve_methods.each do |x| -%>
+<% methods.each do |x| -%>
 <% if x.architectures? -%>
 <%= pad(4) %>{% if <%= x.render_arches %> %}
-<% end -%>
 <%= x.render(@name) %>
-<% if x.architectures? -%>
-<% pad(4) %>{% end %}
+<%= pad(4) %>{% end %}
+<% else -%>
+<%= x.render(@name) %>
 <% end -%>
 <% end %>
 <%= pad %>end
