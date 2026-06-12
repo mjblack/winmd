@@ -1,5 +1,5 @@
 name: winmd
-version: 1.2.2
+version: 1.3.0
 
 authors:
   - Matthew J. Black <mjblack@gmail.com>
@@ -17,6 +17,9 @@ dependencies:
     github: jwaldrip/admiral.cr
   git-repository:
     github: place-labs/git-repository
+  ecma335:
+    github: mjblack/ecma335
+    version: 1.0.0
 
 development_dependencies:
   ameba:

@@ -18,6 +18,12 @@ module WinMD
         long: "module-name",
         default: "win32cr"
 
+      define_flag source_format : String,
+        description: "Input source format (json or winmd)",
+        short: s,
+        long: "source-format",
+        default: "json"
+
       define_flag debug : Bool,
         description: "Debug logging",
         default: false,
@@ -25,7 +31,7 @@ module WinMD
         long: debug
 
       define_argument source_dir : String,
-        description: "Source directory with JSON files",
+        description: "Source directory with JSON files, or path to a .winmd file when --source-format=winmd",
         required: false
 
       define_argument dest_dir : String,
@@ -72,7 +78,8 @@ module WinMD
           end
         end
 
-        Log.debug { "Source JSON directory: #{src.to_s}" }
+        Log.debug { "Source path: #{src.to_s}" }
+        Log.debug { "Source format: #{flags.source_format}" }
         Log.debug { "Top level namespace: #{WinMD.top_level_namespace}" }
         Log.debug { "Output directory: #{dst.to_s}\\src\\#{WinMD.output_dir}" }
 
@@ -82,8 +89,17 @@ module WinMD
         elapsed_time = Time.measure do
           Log.debug { "Initialized" }
           WinMD.init
-          Log.debug { "Phase 1 - Processing JSON Files" }
-          WinMD.process_json_files(json_path)
+          case flags.source_format
+          when "json"
+            Log.debug { "Phase 1 - Processing JSON Files" }
+            WinMD.process_json_files(json_path)
+          when "winmd"
+            Log.debug { "Phase 1 - Processing WinMD File" }
+            WinMD.process_winmd_file(src)
+          else
+            puts "Error: unsupported --source-format '#{flags.source_format}'. Expected 'json' or 'winmd'."
+            exit 1
+          end
           Log.debug { "Phase 2 - Resolving COM Interfaces" }
           WinMD.resolve_com_interfaces
           Log.debug { "Phase 3 - Applying Overrides" }

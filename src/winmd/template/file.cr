@@ -77,6 +77,7 @@ class WinMD::File < WinMD::Base
 
   def render
     @functions.each do |f|
+      next if f.dll_import.empty?
       if WinMD.dll_exception?(f.dll_import)
         next
       end
@@ -155,6 +156,48 @@ class WinMD::File < WinMD::Base
 
   def has_kind?(str_kind : String)
     get_kinds.includes?(str_kind)
+  end
+
+  # True if this file would render as a bare `module ... extend self end`
+  # with no constants, types, functions, or unicode aliases.
+  # Produced by `ensure_namespace_prefix_files` when a namespace appears only
+  # as an intermediate prefix and never contributes real content.
+  def empty_shell?
+    @constants.empty? &&
+      @types.empty? &&
+      @functions.empty? &&
+      @unicode_aliases.empty?
+  end
+
+  # True if this file lives outside the projected Win32 namespace tree —
+  # i.e. it was created for a `Windows.Foundation.*`, `Windows.Storage.*`,
+  # etc. WinRT type that was referenced from a Win32 type via ApiRef but
+  # has no metadata in `Windows.Win32.winmd`. The importer remaps these
+  # to a `WinRT.*` namespace, so the prefix check here matches the
+  # projected form, not the raw CLR namespace.
+  def foreign?
+    @orig_file_name.starts_with?("WinRT.")
+  end
+
+  # True if the file contains only placeholder NativeTypedef -> Void*
+  # entries (no real constants, functions, or richer types). These are
+  # emitted by `Ecma335Importer#ensure_placeholder_types_for_missing_refs`
+  # to keep ApiRefs resolvable.
+  def placeholder_only?
+    return false unless @constants.empty?
+    return false unless @functions.empty?
+    return false unless @unicode_aliases.empty?
+    return false if @types.empty?
+    @types.all? { |t| placeholder_typedef?(t) }
+  end
+
+  private def placeholder_typedef?(type : WinMD::Type) : Bool
+    return false unless type.is_a?(WinMD::Type::NativeTypedef)
+    def_ = type.as(WinMD::Type::NativeTypedef).def_
+    return false unless def_.is_a?(WinMD::Type::PointerTo)
+    child = def_.as(WinMD::Type::PointerTo).child
+    child.is_a?(WinMD::Type::Native) &&
+      child.as(WinMD::Type::Native).name == "Void"
   end
 
   def has_type?(str_type : String)

@@ -52,29 +52,35 @@ class WinMD::Type::Com < WinMD::Type
 
   def resolve_methods
     if interf = @interface
-      if file = WinMD.find_file_by_ns(interf.as(WinMD::Type::ApiRef).namespace)
-        if com = file.find_com_interface(interf.as(WinMD::Type::ApiRef).name)
+      base_interface_ref = case interf
+                           when WinMD::Type::ApiRef
+                             interf
+                           when WinMD::Type::PointerTo
+                             interf.child.as?(WinMD::Type::ApiRef)
+                           else
+                             nil
+                           end
+
+      if base_interface_ref && (file = WinMD.find_file_by_ns(base_interface_ref.namespace))
+        if com = file.find_com_interface(base_interface_ref.name)
           new_methods = com.resolve_methods + @methods
           new_methods.each do |x|
             x.interface = @name
           end
           @resolved_methods = new_methods
-
-          # look for duplicate methods and remediate
-          @resolved_methods.each do |x|
-            if (dup_methods = @resolved_methods.select { |m| m.name == x.name }).size > 1
-              dup_methods.each_with_index do |v, index|
-                i = index + 1
-                new_name = "#{v.name}_#{i}"
-                v.name = new_name
-              end
-            end
-          end
         end
       end
-    else
-      @resolved_methods = @methods
     end
+    @resolved_methods = @methods if @resolved_methods.empty?
+
+    # Look for duplicate methods (for inheritance and overloads) and remediate.
+    @resolved_methods.group_by(&.name).each do |name, methods|
+      next if methods.size <= 1
+      methods.each_with_index do |method, index|
+        method.name = "#{name}_#{index + 1}"
+      end
+    end
+
     return @resolved_methods
   end
 

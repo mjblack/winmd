@@ -12,6 +12,7 @@ require "compiler/crystal/syntax/token"
 
 require "admiral"
 require "git-repository"
+require "ecma335"
 
 require "./winmd/fun_override"
 require "./winmd/fun_param"
@@ -27,6 +28,7 @@ require "./winmd/template/method"
 require "./winmd/template/include"
 require "./winmd/template/unicode_alias"
 require "./winmd/guid"
+require "./winmd/ecma335_importer"
 
 module WinMD
   VERSION = {{ `shards version #{__DIR__}`.chomp.stringify }}
@@ -168,6 +170,21 @@ module WinMD
     end
   end
 
+  def self.process_winmd_file(path : Path)
+    begin
+      parsed = Ecma335.parse(path.to_s)
+      importer = WinMD::Ecma335Importer.new(parsed)
+      importer.import.each do |file|
+        WinMD.add_file(file)
+      end
+    rescue e : Exception
+      puts "Error while processing WinMD file: #{path}"
+      puts e.message
+      puts e.backtrace
+      exit 1
+    end
+  end
+
   def self.resolve_com_interfaces
     WinMD.files.each do |f|
       begin
@@ -181,9 +198,19 @@ module WinMD
   end
 
   def self.write_files(dir : Path)
+    foreign_placeholders = [] of File
     WinMD.files.each do |f|
       begin
         f.file = f
+        if f.empty_shell?
+          Log.debug { "Skipping empty namespace shell #{f.namespace} (#{f.file_path}/#{f.file_name})" }
+          next
+        end
+        if f.foreign? && f.placeholder_only?
+          Log.debug { "Consolidating foreign placeholder #{f.namespace} into external_refs.cr" }
+          foreign_placeholders << f
+          next
+        end
         file_dir = dir.join(f.file_path)
         Dir.mkdir_p(file_dir)
         ::File.open(file_dir.join(f.file_name), "w") do |fp|
@@ -194,6 +221,8 @@ module WinMD
         puts e.backtrace
       end
     end
+
+    write_external_refs(dir, foreign_placeholders)
 
     begin
       main_file_slice = ECR.render("./src/winmd/ecr/library_main.ecr").to_slice
@@ -227,5 +256,30 @@ module WinMD
         f.process_overrides
       end
     end
+  end
+
+  # Render the consolidated placeholder file at `dir/src/<lib>/external_refs.cr`.
+  # Holds one `module ... alias ... end` block per foreign WinRT namespace
+  # that was referenced from Win32 metadata but has no first-class
+  # definition (e.g. `Win32cr::Windows::Foundation::IPropertyValue`).
+  private def self.write_external_refs(dir : Path, files : Array(File))
+    return if files.empty?
+
+    target_dir = dir.join("src", WinMD.top_level_namespace.downcase)
+    target_path = target_dir.join(WinMD::Include::EXTERNAL_REFS_FILENAME)
+    Dir.mkdir_p(target_dir)
+
+    io = IO::Memory.new
+    io << "# Auto-generated placeholder aliases for foreign WinRT types\n"
+    io << "# referenced by Win32 metadata. Do not edit by hand.\n\n"
+    files.each do |f|
+      io << f.render
+      io << '\n'
+    end
+
+    ::File.write(target_path, io.to_s)
+  rescue e : Exception
+    puts "Failed to write external refs file: #{e.message}"
+    puts e.backtrace
   end
 end
