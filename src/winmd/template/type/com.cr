@@ -50,39 +50,59 @@ class WinMD::Type::Com < WinMD::Type
     nil
   end
 
+  # The full vtable: inherited methods first, then this interface's own.
+  #
+  # Every method is copied before it is renamed, so de-duplicating overloads
+  # (COM allows the same name at several inheritance levels) never leaks into
+  # the base interface or into other interfaces that share the same base. The
+  # result is memoized because rendering asks for it several times.
+  # The full vtable: inherited methods first, then this interface's own.
+  #
+  # Every method is copied before it is renamed, so de-duplicating overloads
+  # (COM allows the same name at several inheritance levels) never leaks into
+  # the base interface or into other interfaces that share the same base. The
+  # result is memoized because rendering asks for it several times.
   def resolve_methods
-    if interf = @interface
-      base_interface_ref = case interf
-                           when WinMD::Type::ApiRef
-                             interf
-                           when WinMD::Type::PointerTo
-                             interf.child.as?(WinMD::Type::ApiRef)
-                           else
-                             nil
-                           end
+    return @resolved_methods unless @resolved_methods.empty?
 
-      if base_interface_ref && (file = WinMD.find_file_by_ns(base_interface_ref.namespace))
-        if com = file.find_com_interface(base_interface_ref.name)
-          new_methods = com.resolve_methods + @methods
-          new_methods.each do |x|
-            x.interface = @name
-          end
-          @resolved_methods = new_methods
+    inherited = [] of WinMD::Method
+    if base = base_interface_ref
+      if file = WinMD.find_file_by_ns(base.namespace)
+        if com = file.find_com_interface(base.name)
+          inherited = com.resolve_methods
         end
       end
     end
-    @resolved_methods = @methods if @resolved_methods.empty?
 
-    # Look for duplicate methods (for inheritance and overloads) and remediate.
-    @resolved_methods.group_by(&.name).each do |name, methods|
-      next if methods.size <= 1
-      methods.each_with_index do |method, index|
-        method.name = "#{name}_#{index + 1}"
+    merged = (inherited + @methods).map(&.dup)
+    merged.each { |x| x.interface = @name }
+
+    # Overloads get a 1-based suffix in vtable order: foo_1, foo_2, ...
+    # Grouping is by the original metadata name so that overloads already
+    # suffixed at a base level line up with the ones added here.
+    counts = merged.group_by(&.original_name).transform_values(&.size)
+    seen = Hash(String, Int32).new(0)
+    merged.each do |x|
+      if counts[x.original_name] > 1
+        seen[x.original_name] += 1
+        x.name = "#{x.original_name}_#{seen[x.original_name]}"
+      else
+        x.name = x.original_name
       end
     end
 
-    return @resolved_methods
+    @resolved_methods = merged
   end
+
+  # The base interface reference, given directly or wrapped in a pointer.
+  private def base_interface_ref : WinMD::Type::ApiRef?
+    case interf = @interface
+    when WinMD::Type::ApiRef   then interf
+    when WinMD::Type::PointerTo then interf.child.as?(WinMD::Type::ApiRef)
+    else                            nil
+    end
+  end
+
 
   def file=(file : WinMD::File)
     super(file)

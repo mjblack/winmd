@@ -10,3 +10,8 @@
 
 /.vscode/
 /.idea/
+# Local copy of Windows.Win32.winmd (scripts/fetch-winmd.ps1)
+/winmd/
+
+# Generator output from CI or local runs
+/out/

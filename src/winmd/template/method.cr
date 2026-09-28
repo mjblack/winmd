@@ -25,8 +25,13 @@ class WinMD::Method < WinMD::Base
   @[JSON::Field(ignore: true)]
   property interface : String = ""
 
+  # Name after `fix_param_name`, before any overload suffix is applied.
+  @[JSON::Field(ignore: true)]
+  property original_name : String = ""
+
   def after_initialize
     @name = WinMD.fix_param_name(@name)
+    @original_name = @name
     super
   end
 
