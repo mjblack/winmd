@@ -46,6 +46,23 @@ module WinMD
   @@dll_exceptions = [] of String
   @@data_type_aliases = {} of String => String
 
+  # Built-in mapping from the .NET-style names used by win32json (and by the
+  # winmd importer) to Crystal types. `data_type_aliases.json` in the working
+  # directory adds to or overrides these, so a generator run without any
+  # override files still renders every file.
+  DEFAULT_TYPE_ALIASES = {
+    "Char"    => "UInt16",
+    "Single"  => "Float32",
+    "Double"  => "Float64",
+    "SByte"   => "Int8",
+    "Byte"    => "UInt8",
+    "Guid"    => "LibC::GUID",
+    "UIntPtr" => "LibC::UIntPtrT",
+    "IntPtr"  => "LibC::IntPtrT",
+    "Boolean" => "Bool",
+    "HANDLE"  => "LibC::HANDLE",
+  }
+
   # Runtime configuration parameters
   class_property log_file : Bool = false
   class_property log_file_name : Path = Path.new("winmd.log")
@@ -71,6 +88,7 @@ module WinMD
         exit 1
       end
     end
+    DEFAULT_TYPE_ALIASES.each { |key, value| @@data_type_aliases[key] ||= value }
     if ::File.exists?(@@data_type_aliases_file)
       begin
         json = JSON.parse(::File.read(@@data_type_aliases_file))
@@ -202,48 +220,74 @@ module WinMD
     end
   end
 
+  # Renders every namespace file plus the library entry points into `dir`.
+  # Failures are reported per file with the path involved; the process exits
+  # with status 1 when any file could not be written so callers and CI notice.
   def self.write_files(dir : Path)
+    failures = 0
+
     WinMD.files.each do |f|
+      target = dir.join(f.file_path).join(f.file_name)
       begin
         f.file = f
         if f.empty_shell?
           Log.debug { "Skipping empty namespace shell #{f.namespace} (#{f.file_path}/#{f.file_name})" }
           next
         end
-        file_dir = dir.join(f.file_path)
-        Dir.mkdir_p(file_dir)
-        ::File.open(file_dir.join(f.file_name), "w") do |fp|
-          fp.write(f.render.to_slice)
-        end
+        content = f.render
+        Dir.mkdir_p(dir.join(f.file_path))
+        ::File.write(target, content)
       rescue e : Exception
-        puts e.message
-        puts e.backtrace
+        failures += 1
+        report_write_failure(target, f.namespace, e)
       end
     end
 
-    begin
-      main_file_slice = ECR.render("./src/winmd/ecr/library_main.ecr").to_slice
-      ::File.open(dir.join("src/" + WinMD.top_level_namespace.downcase + ".cr"), "w") do |f|
-        f.write_string(main_file_slice)
-        f.close
+    lib_name = WinMD.top_level_namespace.downcase
+    {
+      dir.join("src", "#{lib_name}.cr")           => "./src/winmd/ecr/library_main.ecr",
+      dir.join("src", lib_name, "com_ptr.cr")     => "./src/winmd/ecr/com_ptr.ecr",
+    }.each do |target, template|
+      begin
+        Dir.mkdir_p(target.parent)
+        ::File.write(target, render_template(template))
+      rescue e : Exception
+        failures += 1
+        report_write_failure(target, nil, e)
       end
-      comptr_file_slice = ECR.render("./src/winmd/ecr/com_ptr.ecr").to_slice
-      ::File.open(dir.join("src/" + WinMD.top_level_namespace.downcase + "/com_ptr.cr"), "w") do |f|
-        f.write_string(comptr_file_slice)
-        f.close
-      end
-      unless ::File.exists?(dir.join("src/macros.cr"))
-        macro_file_slice = ECR.render("./src/winmd/ecr/macros.ecr").to_slice
-        ::File.open(dir.join("src/macros.cr"), "w") do |f|
-          f.write_string(macro_file_slice)
-          f.close
-        end
-      end
-    rescue e : Exception
-      puts "Failed to create main file"
-      puts e.message
-      puts e.backtrace
     end
+
+    macros = dir.join("src", "macros.cr")
+    unless ::File.exists?(macros)
+      begin
+        ::File.write(macros, render_template("./src/winmd/ecr/macros.ecr"))
+      rescue e : Exception
+        failures += 1
+        report_write_failure(macros, nil, e)
+      end
+    end
+
+    if failures > 0
+      STDERR.puts "#{failures} file(s) could not be written to #{dir}"
+      exit 1
+    end
+  end
+
+  private def self.render_template(template : String) : String
+    case template
+    when "./src/winmd/ecr/library_main.ecr" then ECR.render("./src/winmd/ecr/library_main.ecr")
+    when "./src/winmd/ecr/com_ptr.ecr"      then ECR.render("./src/winmd/ecr/com_ptr.ecr")
+    when "./src/winmd/ecr/macros.ecr"       then ECR.render("./src/winmd/ecr/macros.ecr")
+    else                                         raise ArgumentError.new("unknown template #{template}")
+    end
+  end
+
+  private def self.report_write_failure(target : Path, namespace : String?, error : Exception) : Nil
+    STDERR.puts "Failed to write #{target}#{namespace ? " (#{namespace})" : ""}: #{error.message}"
+    if error.is_a?(::File::AccessDeniedError)
+      STDERR.puts "  The path exists and is read-only, locked by another process, or is a directory."
+    end
+    Log.debug { error.backtrace.join("\n") }
   end
 
   def self.apply_overrides
