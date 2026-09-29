@@ -63,6 +63,18 @@ produces.
 
 ## Development
 
+Build the CLI (installs dependencies first; `--skip-postinstall` avoids
+building ameba, which does not compile on recent Crystal releases):
+
+```bash
+shards install --skip-postinstall
+shards build
+```
+
+`shards build` creates `bin/`. A plain `crystal build src/cli.cr -o bin/winmd.exe`
+fails with `LNK1104` in a fresh clone because `bin/` is git-ignored and does
+not exist yet.
+
 Run the specs:
 
 ```bash
