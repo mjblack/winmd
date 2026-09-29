@@ -57,6 +57,11 @@ module WinMD::Ecma335ImporterSpec
       create_thread.params.map(&.name).should eq(["lpThreadAttributes", "dwStackSize", "lpStartAddress", "lpParameter", "dwCreationFlags", "lpThreadId"])
       create_thread.return_type.as(WinMD::Type::ApiRef).name.should eq("HANDLE")
       create_thread.params[2].type.as(WinMD::Type::ApiRef).target_kind.should eq("FunctionPointer")
+
+      # Header-only (FORCEINLINE) and kernel-mode (ntdllk) imports cannot be
+      # linked from user mode and must not produce functions or @[Link]s.
+      WinMD.files.flat_map(&.functions).map(&.dll_import).should_not contain("forceinline")
+      WinMD.files.flat_map(&.functions).map(&.dll_import).should_not contain("ntdllk")
     end
 
     it "imports enums with numeric members, Flags and integer base" do
@@ -109,6 +114,11 @@ module WinMD::Ecma335ImporterSpec
       idispatch = com.find_com_interface("IDispatch").not_nil!
       idispatch.interface.as(WinMD::Type::ApiRef).name.should eq("IUnknown")
       idispatch.resolve_methods.size.should eq(7)
+
+      shell = file_for("UI.Shell")
+      coclass = shell.types.compact_map(&.as?(WinMD::Type::ComClassID)).find { |c| c.name == "CLSID_FileOpenDialog" }.not_nil!
+      coclass.guid.should eq("dc1c5a9c-e88a-4dde-a5a1-60f82a20aef7")
+      coclass.render.should contain("CLSID_FileOpenDialog = LibC::GUID.new(")
     end
 
     it "imports structs and unions with nested types, layout and architectures" do

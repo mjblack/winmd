@@ -47,6 +47,11 @@ class WinMD::Ecma335Importer
     "string"  => "String",
   }
 
+  # Import modules that no user-mode program can link against: FORCEINLINE marks
+  # header-only inline functions with no export anywhere, and ntdllk is the
+  # kernel-mode ntdll. Emitting these would add unresolvable @[Link] libraries.
+  UNLINKABLE_MODULES = {"forceinline", "ntdllk"}
+
   # Resolution context for type references inside a namespace: nested types
   # are referenced by bare name, so the enclosing chain must be known.
   record Context, namespace : String, parents : Array(String) = [] of String
@@ -116,7 +121,16 @@ class WinMD::Ecma335Importer
         end
         j.field "Functions" do
           j.array do
-            containers.each { |t| t.methods.each { |m| emit_function(j, m, ctx) if m.native_import } }
+            containers.each do |t|
+              t.methods.each do |m|
+                next unless m.native_import
+                if unlinkable?(m)
+                  Log.debug { "Ecma335Importer: skipping #{m.name} (module #{m.native_module} cannot be linked)" }
+                  next
+                end
+                emit_function(j, m, ctx)
+              end
+            end
           end
         end
         j.field "UnicodeAliases" do
@@ -143,6 +157,9 @@ class WinMD::Ecma335Importer
       emit_com(j, t, ctx)
     elsif t.value_type? && (t.has_attribute?("NativeTypedef") || t.has_attribute?("MetadataTypedef"))
       emit_native_typedef(j, t, ctx)
+    elsif t.value_type? && t.fields.empty? && t.has_attribute?("Guid")
+      # A COM coclass: an empty value type whose only payload is its CLSID.
+      emit_com_class_id(j, t)
     elsif t.value_type?
       emit_struct(j, t, ctx)
     else
@@ -242,6 +259,13 @@ class WinMD::Ecma335Importer
       j.field "ReturnAttrs" { emit_return_attrs(j, invoke) }
       j.field "Attrs" { j.array { } }
       j.field "Params" { emit_params(j, invoke, ctx) }
+    end
+  end
+
+  private def emit_com_class_id(j : JSON::Builder, t : Ecma335::ApiType) : Nil
+    j.object do
+      emit_common_header(j, t, t.name, "ComClassID")
+      j.field "Guid", t.attribute?("Guid").try(&.value) || "00000000-0000-0000-0000-000000000000"
     end
   end
 
@@ -607,6 +631,10 @@ class WinMD::Ecma335Importer
     return nil unless name
     candidates = @enum_index[name]? || return nil
     candidates.find { |e| e.namespace_name == ctx.namespace } || candidates.first?
+  end
+
+  private def unlinkable?(m : Ecma335::ApiMethod) : Bool
+    UNLINKABLE_MODULES.includes?(dll_import_name(m.native_module).downcase)
   end
 
   private def dll_import_name(native_module : String?) : String
