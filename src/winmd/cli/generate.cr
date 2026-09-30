@@ -24,6 +24,16 @@ module WinMD
         long: "source-format",
         default: "json"
 
+      define_flag dump_json : String,
+        description: "With --source-format=winmd, also write the intermediate win32json-style documents to this directory",
+        long: "dump-json",
+        default: ""
+
+      define_flag associated_enums : Bool,
+        description: "With --source-format=winmd, type integer params/fields that carry an AssociatedEnum attribute as that enum",
+        long: "associated-enums",
+        default: false
+
       define_flag debug : Bool,
         description: "Debug logging",
         default: false,
@@ -95,7 +105,7 @@ module WinMD
             WinMD.process_json_files(json_path)
           when "winmd"
             Log.debug { "Phase 1 - Processing WinMD File" }
-            WinMD.process_winmd_file(src)
+            WinMD.process_winmd_file(src, flags.dump_json.empty? ? nil : Path.new(flags.dump_json), flags.associated_enums)
           else
             puts "Error: unsupported --source-format '#{flags.source_format}'. Expected 'json' or 'winmd'."
             exit 1

@@ -19,7 +19,7 @@ dependencies:
     github: place-labs/git-repository
   ecma335:
     github: mjblack/ecma335
-    version: 1.0.0
+    version: ~> 1.2.0
 
 development_dependencies:
   ameba:
