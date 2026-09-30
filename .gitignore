@@ -15,3 +15,6 @@
 
 # Generator output from CI or local runs
 /out/
+
+# Release workflow packaging output
+/dist/

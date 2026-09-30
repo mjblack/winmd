@@ -89,6 +89,22 @@ CI (`.github/workflows/ci.yml`) runs the specs on Windows and then
 generates bindings from the pinned metadata and compiles a set of
 representative namespaces.
 
+### Releasing
+
+Bump `version` in `shard.yml`, merge, then push a matching tag:
+
+```bash
+git tag -a v1.4.0 -m "winmd 1.4.0"
+git push origin v1.4.0
+```
+
+The release workflow (`.github/workflows/release.yml`) checks that the tag
+matches `shard.yml`, runs the specs, builds a static `winmd.exe`, and
+publishes a GitHub release with `winmd-<version>-windows-x86_64.zip` (binary,
+README, LICENSE, example override files) and its SHA-256. Run it manually
+from the Actions tab with an existing tag to attach a binary to a release
+that was created by hand.
+
 ## Contributing
 
 1. Fork it (<https://github.com/mjblack/winmd/fork>)
