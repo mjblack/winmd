@@ -1,0 +1,97 @@
+name: Release
+
+# Publishes a GitHub release with a static winmd.exe when a v* tag is pushed.
+# The manual trigger (re)publishes an existing tag, for example to attach a
+# binary to a release that was created by hand.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to publish, e.g. v1.4.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref_name }}
+
+      - name: Install Crystal
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: latest
+
+      - name: Install shards dependencies
+        run: shards install --skip-postinstall
+
+      - name: Check that the tag matches shard.yml
+        shell: pwsh
+        run: |
+          $version = (Select-String -Path shard.yml -Pattern '^version:\s*(\S+)').Matches[0].Groups[1].Value
+          $expected = "v$version"
+          if ($env:RELEASE_TAG -ne $expected) {
+            throw "Tag $env:RELEASE_TAG does not match shard.yml version $version (expected $expected)"
+          }
+          "RELEASE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Write-Host "Releasing winmd $version"
+
+      - name: Fetch pinned WinMD fixture
+        shell: pwsh
+        run: ./scripts/fetch-winmd.ps1
+
+      - name: Run specs
+        run: crystal spec --error-trace
+
+      - name: Build static release binary
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path bin | Out-Null
+          crystal build src/cli.cr -o bin/winmd.exe --release --static
+          if ($LASTEXITCODE -ne 0) { throw "crystal build failed" }
+          $reported = (& bin/winmd.exe --version).Trim()
+          if ($reported -ne $env:RELEASE_VERSION) {
+            throw "winmd.exe reports version $reported, expected $env:RELEASE_VERSION"
+          }
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $name = "winmd-$env:RELEASE_VERSION-windows-x86_64"
+          New-Item -ItemType Directory -Force -Path "dist/$name" | Out-Null
+          Copy-Item bin/winmd.exe, README.md, LICENSE "dist/$name/"
+          Copy-Item -Recurse examples "dist/$name/examples"
+          Compress-Archive -Path "dist/$name/*" -DestinationPath "dist/$name.zip" -Force
+          Get-FileHash "dist/$name.zip" -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash.ToLower())  $name.zip" } |
+            Out-File -FilePath "dist/$name.zip.sha256" -Encoding ascii
+          Get-ChildItem dist
+          "RELEASE_ASSET=$name" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Publish release
+        shell: pwsh
+        run: |
+          $tag = $env:RELEASE_TAG
+          $assets = @("dist/$env:RELEASE_ASSET.zip", "dist/$env:RELEASE_ASSET.zip.sha256")
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Release $tag exists; uploading assets"
+            gh release upload $tag @assets --clobber
+          } else {
+            Write-Host "Creating release $tag"
+            gh release create $tag @assets --verify-tag --title $env:RELEASE_VERSION --generate-notes
+          }
+          if ($LASTEXITCODE -ne 0) { throw "gh release failed" }
