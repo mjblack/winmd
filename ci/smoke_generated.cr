@@ -71,10 +71,11 @@ end
 Fd.setLastErrorEx(Fd::WIN32_ERROR::ERROR_PATH_NOT_FOUND, 0_u32)
 check.call("SetLastErrorEx/GetLastError", LibC.GetLastError == Fd::WIN32_ERROR::ERROR_PATH_NOT_FOUND.value)
 
-# Registry: pointer typedef (HKEY), enum flags and an out-pointer to an enum.
-hklm = Pointer(Void).new(SysReg::HKEY_LOCAL_MACHINE.to_i64.to_u64!)
+# Registry: a pointer-typed constant (HKEY), enum flags and an out-pointer to an enum.
+check.call("HKEY_LOCAL_MACHINE is an HKEY pointer", SysReg::HKEY_LOCAL_MACHINE.address == 0xffffffff80000002_u64)
+check.call("INVALID_HANDLE_VALUE is a HANDLE pointer", Fd::INVALID_HANDLE_VALUE.address == UInt64::MAX)
 size = 0_u32
-hr = SysReg.regGetValueW(hklm, wide("HARDWARE\\DESCRIPTION\\System"), wide("Identifier"),
+hr = SysReg.regGetValueW(SysReg::HKEY_LOCAL_MACHINE, wide("HARDWARE\\DESCRIPTION\\System"), wide("Identifier"),
   SysReg::REG_ROUTINE_FLAGS::RRF_RT_ANY, Pointer(SysReg::REG_VALUE_TYPE).null, Pointer(Void).null, pointerof(size))
 check.call("RegGetValueW size query", hr.value == 0 && size > 0)
 

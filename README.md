@@ -59,7 +59,9 @@ Extra flags for this mode:
 
 GUID-valued constants are emitted as `LibC::GUID` values, and `PROPERTYKEY` /
 `DEVPROPKEY` constants as struct values, in addition to what the JSON flow
-produces.
+produces. Constants typed by a pointer typedef (`HKEY_LOCAL_MACHINE`,
+`INVALID_HANDLE_VALUE`, `HWND_BROADCAST`, ...) are emitted as typed pointers,
+e.g. `HKEY.new(0xffffffff80000002_u64)`, matching the casts in the C headers.
 
 ## Development
 

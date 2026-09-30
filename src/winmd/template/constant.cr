@@ -15,6 +15,8 @@ class WinMD::Constant < WinMD::Base
   def after_initialize
     @name = WinMD.fix_type_name(@name)
     case @valuetype
+    when /Pointer/
+      @value = pointer_value
     when /Int/, /Float/
       t = @valuetype[0].downcase
       match = /[Int|Float](\d+)$/.match(@valuetype)
@@ -47,6 +49,18 @@ class WinMD::Constant < WinMD::Base
     guid = UUID.new(d["Fmtid"].as_s).unsafe_as(WinMD::Guid)
     pid = d["Pid"].as_i.to_u32
     "#{dt}.new(LibC::GUID.new(#{guid.to_hex_params}), #{pid}_u32)"
+  end
+
+  # Constants typed by a pointer typedef (HKEY, HANDLE, HWND, PWSTR, ...): the
+  # value is the 64-bit address, rendered through the typedef so the constant
+  # has the pointer type the API expects, e.g.
+  # `HKEY_LOCAL_MACHINE = Win32cr::System::Registry::HKEY.new(0xffffffff80000002_u64)`.
+  private def pointer_value : String
+    dt = "Pointer(Void)"
+    if ref = @type.as?(WinMD::Type::ApiRef)
+      dt = WinMD.fix_namespace(ref.api)[0] + "::" + ref.name
+    end
+    "#{dt}.new(0x#{@value.to_u64.to_s(16)}_u64)"
   end
 
   def file=(file : WinMD::File)

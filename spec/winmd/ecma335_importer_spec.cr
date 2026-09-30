@@ -92,6 +92,23 @@ module WinMD::Ecma335ImporterSpec
       msi.constants.find { |c| c.name == "INSTALLPROPERTY_PACKAGENAME" }.not_nil!.value.should eq("\"PackageName\"")
     end
 
+    it "renders constants typed by pointer typedefs as typed pointers" do
+      registry = file_for("System.Registry")
+      hklm = registry.constants.find { |c| c.name == "HKEY_LOCAL_MACHINE" }.not_nil!
+      hklm.value.should eq("Win32cr::System::Registry::HKEY.new(0xffffffff80000002_u64)")
+
+      foundation = file_for("Foundation")
+      invalid = foundation.constants.find { |c| c.name == "INVALID_HANDLE_VALUE" }.not_nil!
+      invalid.value.should eq("Win32cr::Foundation::HANDLE.new(0xffffffffffffffff_u64)")
+
+      messaging = file_for("UI.WindowsAndMessaging")
+      broadcast = messaging.constants.find { |c| c.name == "HWND_BROADCAST" }.not_nil!
+      broadcast.value.should eq("Win32cr::Foundation::HWND.new(0xffff_u64)")
+
+      msi = file_for("System.ApplicationInstallationAndServicing")
+      msi.constants.find { |c| c.name == "MSIDBOPEN_TRANSACT" }.not_nil!.value.should eq("Win32cr::Foundation::PWSTR.new(0x1_u64)")
+    end
+
     it "imports native typedefs, delegates and COM interfaces" do
       foundation = file_for("Foundation")
       typedefs = foundation.types.compact_map(&.as?(WinMD::Type::NativeTypedef))

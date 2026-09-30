@@ -373,6 +373,19 @@ class WinMD::Ecma335Importer
 
   private def emit_constant(j : JSON::Builder, f : Ecma335::ApiField, ctx : Context) : Nil
     if f.literal? && (value = f.constant_value) && (ct = f.constant_type) && (value_type = CONSTANT_VALUE_TYPES[ct]?)
+      # HKEY_LOCAL_MACHINE, INVALID_HANDLE_VALUE, HWND_BROADCAST, MSIDBOPEN_*:
+      # integers cast to a pointer typedef in the headers. Keep them pointers.
+      if (sig = f.signature) && pointer_typedef?(sig) && (address = pointer_address(value))
+        j.object do
+          j.field "Name", f.name
+          j.field "Type" { emit_type_ref(j, sig, ctx) }
+          j.field "ValueType", "Pointer"
+          j.field "Value" { j.raw(address.to_s) }
+          j.field "Attrs" { j.array { attribute_names(f).each { |a| j.string a } } }
+        end
+        return
+      end
+
       literal = constant_literal(ct, value)
       return unless literal
       j.object do
@@ -407,6 +420,25 @@ class WinMD::Ecma335Importer
       end
     else
       Log.debug { "Ecma335Importer: skipping constant #{f.name} (#{f.signature})" }
+    end
+  end
+
+  # True for native typedefs whose underlying field is a pointer
+  # (HANDLE, HKEY, HWND, PWSTR, ...).
+  private def pointer_typedef?(signature : String) : Bool
+    return false unless signature.starts_with?("valuetype(") && signature.ends_with?(')')
+    target = @api.type?(signature[10...-1]) || return false
+    return false unless target.has_attribute?("NativeTypedef") || target.has_attribute?("MetadataTypedef")
+    target.fields.first?.try(&.signature).try(&.starts_with?("ptr(")) || false
+  end
+
+  # The address an integer constant denotes once cast to a pointer: signed
+  # values sign-extend to 64 bits, as `(HKEY)(ULONG_PTR)(LONG)0x80000002` does.
+  private def pointer_address(value : String) : UInt64?
+    if signed = value.to_i64?
+      signed.to_u64!
+    else
+      value.to_u64?
     end
   end
 
