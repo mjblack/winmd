@@ -4,6 +4,9 @@ class WinMD::Fun
   # listed in fun_exceptions.json). The generator comments these out instead
   # of redeclaring them.
   class_getter exceptions = [] of String
+  # Signatures of the discovered LibC functions, keyed by C symbol name.
+  # Functions from fun_exceptions.json (or --libc-funs) have no entry here.
+  class_getter libc_signatures = {} of String => LibCFuns::Signature
   getter name : String
   getter params = [] of FunParam
   getter return_type : String?
@@ -36,19 +39,25 @@ class WinMD::Fun
   # (`WinMD::LibCFuns.discover`) or read from `WinMD.libc_funs_file`.
   def self.collect_funs
     @@exceptions.clear
+    @@libc_signatures.clear
     if ::File.exists?(WinMD.fun_exceptions_file)
       json = JSON.parse(::File.read(WinMD.fun_exceptions_file))
       json.as_a.each { |x| add_exception(x.as_s) }
     end
 
-    libc = if file = WinMD.libc_funs_file
-             Log.debug { "Reading LibC function names from #{file}" }
-             WinMD::LibCFuns.load_list(file)
-           else
-             WinMD::LibCFuns.discover
-           end
-    Log.debug { "#{libc.size} LibC functions will not be redeclared" }
-    libc.each { |name| add_exception(name) }
+    if file = WinMD.libc_funs_file
+      Log.debug { "Reading LibC function names from #{file}" }
+      names = WinMD::LibCFuns.load_list(file)
+      names.each { |name| add_exception(name) }
+      Log.debug { "#{names.size} LibC functions will not be redeclared (no signatures, so their wrappers are commented out)" }
+    else
+      signatures = WinMD::LibCFuns.discover_signatures
+      signatures.each do |name, signature|
+        add_exception(name)
+        @@libc_signatures[name] = signature
+      end
+      Log.debug { "#{signatures.size} LibC functions will not be redeclared" }
+    end
   end
 
   def self.find_fun(name : String)
@@ -57,6 +66,11 @@ class WinMD::Fun
 
   def self.exception?(name : String)
     @@exceptions.includes?(name)
+  end
+
+  # Known only for functions found by discovery, not for listed names.
+  def self.libc_signature?(name : String) : LibCFuns::Signature?
+    @@libc_signatures[name]?
   end
 
   private def self.add_exception(name : String)

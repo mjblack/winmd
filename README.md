@@ -65,17 +65,34 @@ e.g. `HKEY.new(0xffffffff80000002_u64)`, matching the casts in the C headers.
 
 ### Functions that Crystal's LibC already declares
 
-A `fun` with the same name in two `lib`s is a redefinition error, so functions
-that Crystal's standard library declares in `lib LibC` (`GetLastError`,
-`CloseHandle`, `HeapAlloc`, ...) are emitted commented out; call them through
-`LibC` instead. The list is not built into winmd: at generation time it asks
-the `crystal` on `PATH` (or `WINMD_CRYSTAL`) for its stdlib location and
-default target and reads every `fun` declared under `src/lib_c/<target>/` and
+A C function may only be declared once per program unless every declaration
+has the same signature, so functions that Crystal's standard library already
+declares in `lib LibC` (`GetLastError`, `CloseHandle`, `HeapAlloc`, ...) are
+not declared again in the generated `lib C`. Their module-level wrappers are
+still generated and forward to the stdlib declaration:
+
+```crystal
+# Forwards to `LibC.HeapAlloc`, which Crystal's standard library declares in `c/heapapi`.
+def heapAlloc(hHeap : Win32cr::Foundation::HANDLE, dwFlags : Win32cr::System::Memory::HEAP_FLAGS, dwBytes : LibC::UIntPtrT) : Void*
+  Win32cr::LibCBridge.ret(::LibC.HeapAlloc(Win32cr::LibCBridge.arg(hHeap, ::LibC::HANDLE), ...), Pointer(Void))
+end
+```
+
+The two sides spell the same C types differently (a Flags enum vs `DWORD`,
+`Win32cr::Foundation::FILETIME*` vs `LibC::FILETIME*`, `HKEY` vs the opaque
+`LibC::HKEY`), so a generated `src/<lib>/libc_bridge.cr` converts each
+argument to LibC's type and the result back. Files with such wrappers
+`require` the stdlib file that declares the function (`c/heapapi`, ...).
+
+The list of functions is not built into winmd. At generation time it asks the
+`crystal` on `PATH` (or `WINMD_CRYSTAL`) for its stdlib location and default
+target and parses every `fun` declared under `src/lib_c/<target>/` and
 `src/crystal/system/<os>/`, so it always matches the compiler that will build
-the bindings. `winmd libc` prints that list. Where no compiler is available,
-`--libc-funs FILE` supplies the names (one per line) instead.
-`fun_exceptions.json` still adds names on top, for functions your own code
-declares in `LibC`.
+the bindings. `winmd libc` prints the names and `winmd libc --signatures` the
+declarations. Where no compiler is available, `--libc-funs FILE` supplies the
+names (one per line) instead; without signatures the wrappers of those
+functions are commented out, as are those of names listed in
+`fun_exceptions.json` (for functions your own code declares in `LibC`).
 
 ## Development
 

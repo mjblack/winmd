@@ -12,9 +12,21 @@ module WinMD
         long: "target",
         default: ""
 
+      define_flag signatures : Bool,
+        description: "Also print each declaration (parameters, return type, declaring stdlib file)",
+        long: "signatures",
+        default: false
+
       def run
-        names = WinMD::LibCFuns.discover(WinMD.crystal_executable, flags.target.empty? ? nil : flags.target)
-        names.each { |name| puts name }
+        target = flags.target.empty? ? nil : flags.target
+        signatures = WinMD::LibCFuns.discover_signatures(WinMD.crystal_executable, target)
+        signatures.keys.sort.each do |name|
+          if flags.signatures
+            puts "#{signatures[name]}  [#{signatures[name].require_path}]"
+          else
+            puts name
+          end
+        end
       rescue e : WinMD::LibCFuns::Error
         STDERR.puts e.message
         exit 1

@@ -5,10 +5,7 @@ require "ecr"
 require "big"
 require "uuid"
 require "file_utils"
-require "compiler/crystal/syntax/ast"
-require "compiler/crystal/syntax/virtual_file"
-require "compiler/crystal/syntax/lexer"
-require "compiler/crystal/syntax/token"
+require "compiler/crystal/syntax"
 
 require "admiral"
 require "git-repository"
@@ -246,6 +243,7 @@ module WinMD
     {
       dir.join("src", "#{lib_name}.cr")           => "./src/winmd/ecr/library_main.ecr",
       dir.join("src", lib_name, "com_ptr.cr")     => "./src/winmd/ecr/com_ptr.ecr",
+      dir.join("src", lib_name, "libc_bridge.cr") => "./src/winmd/ecr/libc_bridge.ecr",
     }.each do |target, template|
       begin
         Dir.mkdir_p(target.parent)
@@ -276,6 +274,7 @@ module WinMD
     case template
     when "./src/winmd/ecr/library_main.ecr" then ECR.render("./src/winmd/ecr/library_main.ecr")
     when "./src/winmd/ecr/com_ptr.ecr"      then ECR.render("./src/winmd/ecr/com_ptr.ecr")
+    when "./src/winmd/ecr/libc_bridge.ecr"  then ECR.render("./src/winmd/ecr/libc_bridge.ecr")
     when "./src/winmd/ecr/macros.ecr"       then ECR.render("./src/winmd/ecr/macros.ecr")
     else                                         raise ArgumentError.new("unknown template #{template}")
     end
