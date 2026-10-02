@@ -63,6 +63,20 @@ produces. Constants typed by a pointer typedef (`HKEY_LOCAL_MACHINE`,
 `INVALID_HANDLE_VALUE`, `HWND_BROADCAST`, ...) are emitted as typed pointers,
 e.g. `HKEY.new(0xffffffff80000002_u64)`, matching the casts in the C headers.
 
+### Functions that Crystal's LibC already declares
+
+A `fun` with the same name in two `lib`s is a redefinition error, so functions
+that Crystal's standard library declares in `lib LibC` (`GetLastError`,
+`CloseHandle`, `HeapAlloc`, ...) are emitted commented out; call them through
+`LibC` instead. The list is not built into winmd: at generation time it asks
+the `crystal` on `PATH` (or `WINMD_CRYSTAL`) for its stdlib location and
+default target and reads every `fun` declared under `src/lib_c/<target>/` and
+`src/crystal/system/<os>/`, so it always matches the compiler that will build
+the bindings. `winmd libc` prints that list. Where no compiler is available,
+`--libc-funs FILE` supplies the names (one per line) instead.
+`fun_exceptions.json` still adds names on top, for functions your own code
+declares in `LibC`.
+
 ## Development
 
 Build the CLI:

@@ -16,6 +16,7 @@ require "ecma335"
 
 require "./winmd/fun_override"
 require "./winmd/fun_param"
+require "./winmd/libc_funs"
 require "./winmd/fun"
 require "./winmd/architecture"
 require "./winmd/template/base"
@@ -33,15 +34,9 @@ require "./winmd/ecma335_importer"
 module WinMD
   VERSION = {{ `shards version #{__DIR__}`.chomp.stringify }}
 
-  LIBC_FUNS = {{LibC.methods.map do |x|
-                  args = x.args.stringify.gsub(/[\[|\]]/, "").split(",")
-                  {name: x.name.stringify, args: args, return_type: x.return_type.stringify}
-                end}}
-
   INT_TYPES = {{Int.subclasses.map { |x| x.stringify }}}
 
   class_property files = [] of File
-  class_property libc_funs = [] of String
   class_property crystal_keywords = [] of String
   @@dll_exceptions = [] of String
   @@data_type_aliases = {} of String => String
@@ -75,6 +70,10 @@ module WinMD
   class_property data_type_aliases_file : Path = Path.new("data_type_aliases.json")
   class_property overrides_file : Path = Path.new("overrides.json")
   class_property? fun_aliases : Bool = false
+  # Compiler used to discover the LibC functions that must not be redeclared.
+  class_property crystal_executable : String = ENV["WINMD_CRYSTAL"]? || "crystal"
+  # Optional list of LibC function names that replaces discovery.
+  class_property libc_funs_file : Path? = nil
 
   def self.init
     if ::File.exists?(@@dll_exceptions_file)
