@@ -133,6 +133,17 @@ class WinMD::File < WinMD::Base
     includes_map
   end
 
+  # Files the wrappers that forward to Crystal's LibC need: the stdlib files
+  # declaring those functions (`c/heapapi`, ...) and the LibCBridge helpers,
+  # written next to the top-level namespace file.
+  def libc_requires : Array(String)
+    wrappers = @functions.select(&.libc_wrapper?)
+    return [] of String if wrappers.empty?
+    paths = wrappers.map { |f| f.libc_signature.not_nil!.require_path }.uniq.sort
+    depth = @rel_path.empty? ? 0 : @rel_path.count('/') + 1
+    paths << "./" + "../" * depth + "libc_bridge.cr"
+  end
+
   def get_kinds
     kinds_list = [] of String
     @types.each do |type|

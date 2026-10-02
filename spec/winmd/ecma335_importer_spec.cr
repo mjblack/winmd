@@ -39,6 +39,8 @@ module WinMD::Ecma335ImporterSpec
     end
 
     importer = load_importer
+    out_dir = Path.new(Dir.tempdir).join("winmd_importer_spec_#{Process.pid}")
+    after_all { FileUtils.rm_rf(out_dir) }
 
     it "produces one file per API namespace, named like win32json" do
       importer.files.size.should be > 300
@@ -152,21 +154,48 @@ module WinMD::Ecma335ImporterSpec
       point.fields.first.type.as(WinMD::Type::Native).name.should eq("Int32")
     end
 
-    it "renders a namespace that the Crystal compiler accepts" do
-      out_dir = Path.new(Dir.tempdir).join("winmd_importer_spec_#{Process.pid}")
-      begin
-        WinMD.write_files(out_dir)
-        foundation = out_dir.join("src", "win32cr", "foundation.cr")
-        ::File.exists?(foundation).should be_true
-        output = IO::Memory.new
-        # winmd_spec.cr points CRYSTAL_PATH at ./src for its own purposes; the
-        # child compiler must not inherit that or it cannot find the prelude.
-        env = {"CRYSTAL_PATH" => nil}
-        status = Process.run("crystal", ["build", "--no-codegen", foundation.to_s], env: env, output: output, error: output)
-        status.success?.should be_true, output.to_s
-      ensure
-        FileUtils.rm_rf(out_dir)
-      end
+    it "forwards functions that Crystal's LibC declares to LibC" do
+      WinMD.write_files(out_dir)
+      foundation = ::File.read(out_dir.join("src", "win32cr", "foundation.cr"))
+      foundation.should contain(%(require "c/handleapi"))
+      foundation.should contain(%(require "./libc_bridge.cr"))
+      foundation.should contain("def closeHandle(hObject : Win32cr::Foundation::HANDLE) : Win32cr::Foundation::BOOL")
+      foundation.should contain("Win32cr::LibCBridge.ret(::LibC.CloseHandle(Win32cr::LibCBridge.arg(hObject, ::LibC::HANDLE)), Win32cr::Foundation::BOOL)")
+      foundation.should contain("# Commented out due to being part of LibC (declared in c/handleapi)")
+      foundation.should contain("#fun CloseHandle(")
+      # Declared by a lib other than LibC in the stdlib.
+      foundation.should contain("::LibNTDLL.RtlNtStatusToDosError(")
+
+      memory = ::File.read(out_dir.join("src", "win32cr", "system", "memory.cr"))
+      memory.should contain(%(require "c/heapapi"))
+      memory.should contain(%(require "./../libc_bridge.cr"))
+      memory.should contain("Win32cr::LibCBridge.ret(::LibC.GetProcessHeap, Win32cr::Foundation::HANDLE)")
+
+      ::File.exists?(out_dir.join("src", "win32cr", "libc_bridge.cr")).should be_true
+      ::File.read(out_dir.join("src", "win32cr.cr")).should contain(%(require "./win32cr/libc_bridge"))
+    end
+
+    it "renders a namespace that the Crystal compiler accepts, including the LibC wrappers" do
+      WinMD.write_files(out_dir)
+      foundation = out_dir.join("src", "win32cr", "foundation.cr")
+      ::File.exists?(foundation).should be_true
+      # Methods are only type-checked when called, so call wrappers that
+      # forward to LibC with every kind of conversion the bridge performs.
+      driver = out_dir.join("driver.cr")
+      ::File.write(driver, <<-CR)
+        require "./src/win32cr/foundation"
+        handle = Pointer(Void).null
+        Win32cr::Foundation.closeHandle(handle)
+        error : Win32cr::Foundation::WIN32_ERROR = Win32cr::Foundation.getLastError
+        status = 0_i32
+        Win32cr::Foundation.rtlNtStatusToDosError(status)
+        CR
+      output = IO::Memory.new
+      # winmd_spec.cr points CRYSTAL_PATH at ./src for its own purposes; the
+      # child compiler must not inherit that or it cannot find the prelude.
+      env = {"CRYSTAL_PATH" => nil}
+      status = Process.run("crystal", ["build", "--no-codegen", driver.to_s], env: env, output: output, error: output)
+      status.success?.should be_true, output.to_s
     end
   end
 end

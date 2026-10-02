@@ -5,10 +5,7 @@ require "ecr"
 require "big"
 require "uuid"
 require "file_utils"
-require "compiler/crystal/syntax/ast"
-require "compiler/crystal/syntax/virtual_file"
-require "compiler/crystal/syntax/lexer"
-require "compiler/crystal/syntax/token"
+require "compiler/crystal/syntax"
 
 require "admiral"
 require "git-repository"
@@ -16,6 +13,7 @@ require "ecma335"
 
 require "./winmd/fun_override"
 require "./winmd/fun_param"
+require "./winmd/libc_funs"
 require "./winmd/fun"
 require "./winmd/architecture"
 require "./winmd/template/base"
@@ -33,15 +31,9 @@ require "./winmd/ecma335_importer"
 module WinMD
   VERSION = {{ `shards version #{__DIR__}`.chomp.stringify }}
 
-  LIBC_FUNS = {{LibC.methods.map do |x|
-                  args = x.args.stringify.gsub(/[\[|\]]/, "").split(",")
-                  {name: x.name.stringify, args: args, return_type: x.return_type.stringify}
-                end}}
-
   INT_TYPES = {{Int.subclasses.map { |x| x.stringify }}}
 
   class_property files = [] of File
-  class_property libc_funs = [] of String
   class_property crystal_keywords = [] of String
   @@dll_exceptions = [] of String
   @@data_type_aliases = {} of String => String
@@ -75,6 +67,10 @@ module WinMD
   class_property data_type_aliases_file : Path = Path.new("data_type_aliases.json")
   class_property overrides_file : Path = Path.new("overrides.json")
   class_property? fun_aliases : Bool = false
+  # Compiler used to discover the LibC functions that must not be redeclared.
+  class_property crystal_executable : String = ENV["WINMD_CRYSTAL"]? || "crystal"
+  # Optional list of LibC function names that replaces discovery.
+  class_property libc_funs_file : Path? = nil
 
   def self.init
     if ::File.exists?(@@dll_exceptions_file)
@@ -247,6 +243,7 @@ module WinMD
     {
       dir.join("src", "#{lib_name}.cr")           => "./src/winmd/ecr/library_main.ecr",
       dir.join("src", lib_name, "com_ptr.cr")     => "./src/winmd/ecr/com_ptr.ecr",
+      dir.join("src", lib_name, "libc_bridge.cr") => "./src/winmd/ecr/libc_bridge.ecr",
     }.each do |target, template|
       begin
         Dir.mkdir_p(target.parent)
@@ -277,6 +274,7 @@ module WinMD
     case template
     when "./src/winmd/ecr/library_main.ecr" then ECR.render("./src/winmd/ecr/library_main.ecr")
     when "./src/winmd/ecr/com_ptr.ecr"      then ECR.render("./src/winmd/ecr/com_ptr.ecr")
+    when "./src/winmd/ecr/libc_bridge.ecr"  then ECR.render("./src/winmd/ecr/libc_bridge.ecr")
     when "./src/winmd/ecr/macros.ecr"       then ECR.render("./src/winmd/ecr/macros.ecr")
     else                                         raise ArgumentError.new("unknown template #{template}")
     end
