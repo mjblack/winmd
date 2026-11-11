@@ -28,6 +28,11 @@ class WinMD::Function < WinMD::Base
   @[JSON::Field(ignore: true)]
   getter libc_fun : Bool = false
 
+  # LibC's declaration of this function when discovery found one; nil for
+  # names that only come from fun_exceptions.json or --libc-funs.
+  @[JSON::Field(ignore: true)]
+  getter libc_signature : LibCFuns::Signature? = nil
+
   @[JSON::Field(ignore: true)]
   getter fun_alias : String = ""
 
@@ -41,6 +46,7 @@ class WinMD::Function < WinMD::Base
     super
     if WinMD::Fun.exception?(@name)
       @libc_fun = true
+      @libc_signature = WinMD::Fun.libc_signature?(@name)
     end
     @dll_import = normalize_dll_import(@dll_import)
     @fun_alias = @name.underscore
@@ -90,6 +96,49 @@ class WinMD::Function < WinMD::Base
     super(file)
     @return_type.file = file
     @params.each { |x| x.file = file }
+  end
+
+  def wrapper_name : String
+    (@override_name.empty? ? @name : @override_name).camelcase(lower: true)
+  end
+
+  def wrapper_return_type : String
+    @override_return_type.empty? ? @return_type.render.to_s : @override_return_type
+  end
+
+  # True when the wrapper can forward to the stdlib's declaration instead of
+  # being commented out: LibC's parameter list is known and has the same
+  # arity as the metadata's.
+  def libc_wrapper? : Bool
+    signature = @libc_signature
+    return false unless @libc_fun && signature
+    params = signature.params
+    !signature.varargs && !params.nil? && params.size == @params.size
+  end
+
+  # Body of a wrapper that forwards to Crystal's LibC. Each argument is
+  # converted to the type LibC declares and the result back to this
+  # wrapper's declared type, through the generated LibCBridge helpers.
+  def libc_call : String
+    signature = @libc_signature.not_nil!
+    bridge = "#{WinMD.top_level_namespace}::LibCBridge"
+    args = @params.zip(signature.params.not_nil!).map do |param, libc_param|
+      name = param.override_name.empty? ? param.name : param.override_name
+      "#{bridge}.arg(#{name}, #{libc_param.type})"
+    end
+    call = "::#{signature.lib_name}.#{signature.name}"
+    call += "(#{args.join(", ")})" unless args.empty?
+    return_type = wrapper_return_type
+    return call if return_type == "Void"
+    "#{bridge}.ret(#{call}, #{Function.value_type(return_type)})"
+  end
+
+  # `Foo*` is only valid where a type is expected; as a call argument it has
+  # to be written `Pointer(Foo)`.
+  def self.value_type(type : String) : String
+    base = type.rstrip('*')
+    (type.size - base.size).times { base = "Pointer(#{base})" }
+    base
   end
 
   def render

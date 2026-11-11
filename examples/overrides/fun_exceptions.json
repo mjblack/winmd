@@ -1,7 +1,1 @@
-[
-  "GetProcessHeap",
-  "HeapAlloc",
-  "HeapReAlloc",
-  "HeapFree",
-  "RtlNtStatusToDosError"
-]
+[]

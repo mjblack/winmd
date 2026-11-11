@@ -34,6 +34,11 @@ module WinMD
         long: "associated-enums",
         default: false
 
+      define_flag libc_funs : String,
+        description: "File with one LibC function name per line to use instead of asking the Crystal compiler which functions its stdlib declares",
+        long: "libc-funs",
+        default: ""
+
       define_flag debug : Bool,
         description: "Debug logging",
         default: false,
@@ -98,7 +103,13 @@ module WinMD
 
         elapsed_time = Time.measure do
           Log.debug { "Initialized" }
-          WinMD.init
+          WinMD.libc_funs_file = Path.new(flags.libc_funs) unless flags.libc_funs.empty?
+          begin
+            WinMD.init
+          rescue e : WinMD::LibCFuns::Error
+            STDERR.puts e.message
+            exit 1
+          end
           case flags.source_format
           when "json"
             Log.debug { "Phase 1 - Processing JSON Files" }

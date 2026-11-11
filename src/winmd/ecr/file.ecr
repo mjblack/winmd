@@ -2,6 +2,9 @@
 <% unless x.same_file -%>
 <%= x.render %>
 <% end -%>
+<% end -%>
+<% libc_requires.each do |r| -%>
+require "<%= r %>"
 <% end %>
 module <%= @namespace %>
   extend self

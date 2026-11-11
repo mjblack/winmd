@@ -12,6 +12,7 @@
 require "c/fileapi"
 require "../out/src/macros"
 require "../out/src/win32cr/foundation"
+require "../out/src/win32cr/system/memory"
 require "../out/src/win32cr/system/threading"
 require "../out/src/win32cr/system/system_information"
 require "../out/src/win32cr/system/pipes"
@@ -34,10 +35,19 @@ def wide(text : String) : Pointer(UInt16)
   text.to_utf16.to_unsafe
 end
 
-# Plain function taking a handle and returning an integer. (GetCurrentProcessId
-# itself is declared by Crystal's LibC, so the generator comments it out.)
-pid = Win32cr::System::Threading.getProcessId(LibC.GetCurrentProcess)
-check.call("GetProcessId returns the current pid", pid == LibC.GetCurrentProcessId)
+# Plain function taking a handle and returning an integer. GetCurrentProcess
+# and GetCurrentProcessId are declared by Crystal's LibC, so their wrappers
+# forward to LibC instead of to the generated lib.
+pid = Win32cr::System::Threading.getProcessId(Win32cr::System::Threading.getCurrentProcess)
+check.call("GetProcessId returns the current pid", pid == Win32cr::System::Threading.getCurrentProcessId)
+
+# Wrappers forwarding to LibC with argument conversions: a Flags enum where
+# LibC takes a DWORD, and a BOOL result.
+heap = Win32cr::System::Memory.getProcessHeap
+check.call("GetProcessHeap via LibC", !heap.null?)
+block = Win32cr::System::Memory.heapAlloc(heap, Win32cr::System::Memory::HEAP_FLAGS::HEAP_ZERO_MEMORY, 64_u64)
+check.call("HeapAlloc via LibC", !block.null? && block.as(UInt8*)[63] == 0_u8)
+check.call("HeapFree via LibC", Win32cr::System::Memory.heapFree(heap, Win32cr::System::Memory::HEAP_FLAGS.new(0_u32), block) != 0)
 
 # Function filling a struct that contains a nested anonymous union.
 info = uninitialized Win32cr::System::SystemInformation::SYSTEM_INFO
@@ -63,13 +73,19 @@ if created != 0
   read = 0_u32
   LibC.ReadFile(read_side, buffer.to_unsafe, buffer.size, pointerof(read), nil)
   check.call("pipe round trip", String.new(buffer[0, read]) == message)
-  LibC.CloseHandle(read_side)
-  LibC.CloseHandle(write_side)
+  check.call("CloseHandle via LibC", Fd.closeHandle(read_side) != 0)
+  Fd.closeHandle(write_side)
 end
 
-# Typed error constants.
+# Typed error constants; GetLastError forwards to LibC and converts the DWORD
+# into the WIN32_ERROR enum.
 Fd.setLastErrorEx(Fd::WIN32_ERROR::ERROR_PATH_NOT_FOUND, 0_u32)
-check.call("SetLastErrorEx/GetLastError", LibC.GetLastError == Fd::WIN32_ERROR::ERROR_PATH_NOT_FOUND.value)
+check.call("SetLastErrorEx/GetLastError", Fd.getLastError == Fd::WIN32_ERROR::ERROR_PATH_NOT_FOUND)
+# Registry open through LibC's opaque HKEY typedef and enum-typed access mask.
+opened = Pointer(Void).null
+status = SysReg.regOpenKeyExW(SysReg::HKEY_LOCAL_MACHINE, wide("SOFTWARE"), 0_u32, SysReg::REG_SAM_FLAGS::KEY_READ, pointerof(opened))
+check.call("RegOpenKeyExW via LibC", status == Fd::WIN32_ERROR::NO_ERROR && !opened.null?)
+check.call("RegCloseKey via LibC", SysReg.regCloseKey(opened) == Fd::WIN32_ERROR::NO_ERROR)
 
 # Registry: a pointer-typed constant (HKEY), enum flags and an out-pointer to an enum.
 check.call("HKEY_LOCAL_MACHINE is an HKEY pointer", SysReg::HKEY_LOCAL_MACHINE.address == 0xffffffff80000002_u64)

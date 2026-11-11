@@ -1,6 +1,14 @@
 <% if architectures? -%>
 {% if <%= render_arches.join(" || ") %> %}
 <% end -%>
+<% if libc_wrapper? -%>
+<%= pad %># Forwards to `<%= @libc_signature.not_nil!.lib_name %>.<%= @libc_signature.not_nil!.name %>`, which Crystal's standard library declares in `<%= @libc_signature.not_nil!.require_path %>`.
+<%= pad %>def <%= wrapper_name %><% if @params.any? %>(<%= @params.map { |p| p.render }.join(", ") %>)<% end %> : <%= wrapper_return_type %>
+<%= pad(4) %>{% if !flag?(:docs) %}
+<%= pad(4) %><%= libc_call %>
+<%= pad(4) %>{% end %}
+<%= pad %>end
+<% else -%>
 <%= pad %><% if @libc_fun %>#<% end %>def <% if @override_name.empty? %><%= @name.camelcase(lower: true) %><% else %><%= @override_name.camelcase(lower: true) %><% end %><% if @params.any? %>(<%= @params.map { |p| p.render }.join(", ") %>)<% end %> : <% if @override_return_type.empty? %><%= @return_type.render %><% else %><%= @override_return_type %><% end %>
 <% unless @libc_fun -%>
 <%= pad(4) %>{% if !flag?(:docs) %}
@@ -10,6 +18,7 @@
 <%= pad(4) %>{% end %}
 <% end -%>
 <%= pad %><% if @libc_fun %>#<% end %>end
+<% end -%>
 <% if architectures? -%>
 {% end %}
 <% end -%>
